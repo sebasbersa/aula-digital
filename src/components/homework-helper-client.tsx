@@ -41,6 +41,48 @@ interface HomeworkHelperClientProps {
   lessonTitle?: string;
 }
 
+// --- FUNCIÓN DE COMPRESIÓN AÑADIDA ---
+const compressAndConvertToBase64 = (file: File, MAX_WIDTH = 800, MAX_HEIGHT = 800, QUALITY = 0.7): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onerror = reject;
+    reader.onload = (event) => {
+      const img = document.createElement('img');
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          return reject(new Error('No se pudo obtener el contexto del canvas.'));
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL(file.type, QUALITY);
+        resolve(dataUrl);
+      };
+      img.onerror = reject;
+    };
+  });
+};
+
 export function HomeworkHelperClient({ subject, initialPrompt, initialChatHistory, resumedSession, onSessionSaved, lessonTitle }: HomeworkHelperClientProps) {
   const [file, setFile] = useState<File | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -60,6 +102,7 @@ export function HomeworkHelperClient({ subject, initialPrompt, initialChatHistor
   const placeholderText = subject ? (subjectPlaceholders[subject.id] || subjectPlaceholders.default) : subjectPlaceholders.default;
   const initialPromptRef = useRef(initialPrompt);
 
+  // --- FUNCIÓN PARA RESETEAR EL INPUT DE ARCHIVO AÑADIDA ---
   const resetFileInput = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -67,17 +110,11 @@ export function HomeworkHelperClient({ subject, initialPrompt, initialChatHistor
   };
 
   useEffect(() => {
-    // This effect runs when the resumedSession prop changes.
     if (resumedSession) {
         setChatHistory(resumedSession.sessionData);
         setCurrentSession(resumedSession);
         setStatus('in_conversation');
-        toast({
-            title: "Lección Reanudada",
-            description: `Has retomado la lección "${resumedSession.title}".`,
-        });
     } else if (initialChatHistory) {
-        // Handle initial chat history for new lessons
         setChatHistory(initialChatHistory);
         setStatus('in_conversation');
     }
@@ -123,32 +160,38 @@ export function HomeworkHelperClient({ subject, initialPrompt, initialChatHistor
   }, []);
 
   useEffect(() => {
-    // Only run if there's an initial prompt, a profile, it's the first render, and no chat history exists.
     if (initialPromptRef.current && currentProfile && status === 'idle' && chatHistory.length === 0) {
       startConversation({ chatHistory: [], firstMessage: initialPromptRef.current });
-      // Clear the ref to prevent re-triggering on subsequent renders
       initialPromptRef.current = null;
     }
   }, [currentProfile, status, chatHistory.length, startConversation]);
 
-  const handleFileChange = (acceptedFiles: File[]) => {
+  // --- handleFileChange MODIFICADO PARA USAR COMPRESIÓN ---
+  const handleFileChange = async (acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
       const selectedFile = acceptedFiles[0];
-      setFile(selectedFile); // Guardamos el archivo para habilitar el botón de enviar
+      setFile(selectedFile);
+       if (status === 'idle' || status === 'error') {
+         resetChat();
+      }
       
-      const reader = new FileReader();
-      reader.onerror = () => {
-        toast({ title: "Error", description: "No se pudo leer la imagen.", variant: "destructive"});
-      };
-      reader.onload = () => {
-        // Guardamos la imagen convertida en el estado para mostrar la vista previa
-        const base64 = reader.result as string;
+      try {
+        const base64 = await compressAndConvertToBase64(selectedFile);
         setImageBase64(base64);
-      };
-      reader.readAsDataURL(selectedFile);
+      } catch (error) {
+        toast({
+          title: "Error de compresión",
+          description: "No se pudo procesar la imagen seleccionada.",
+          variant: "destructive",
+        });
+        setFile(null);
+        setImageBase64(null);
+        resetFileInput();
+      }
     }
   };
   
+  // --- resetChat MODIFICADO PARA RESETEAR EL INPUT ---
   const resetChat = () => {
     setFile(null);
     setImageBase64(null);
@@ -160,14 +203,15 @@ export function HomeworkHelperClient({ subject, initialPrompt, initialChatHistor
     onSessionSaved?.();
   };
 
+  // --- handleSendMessage MODIFICADO ---
   const handleSendMessage = async () => {
     const messageContent = userMessage.trim() || (imageBase64 ? "Analiza la imagen que adjunté, por favor." : "");
     if (!messageContent) return;
 
     const newHistory: ChatMessage[] = [...chatHistory, { role: 'user', content: messageContent }];
     
-    setChatHistory(newHistory);
     setUserMessage('');
+    setChatHistory(newHistory);
     setStatus('processing');
 
     const inputPayload = {
@@ -189,15 +233,15 @@ export function HomeworkHelperClient({ subject, initialPrompt, initialChatHistor
     } catch (error: any) {
         console.error(error);
         toast({ title: "Error de IA", description: "No se pudo obtener una respuesta.", variant: "destructive" });
-        // Devolvemos el mensaje al input en caso de error para que no se pierda
         setChatHistory(prev => prev.slice(0, -1));
         if (messageContent !== "Analiza la imagen que adjunté, por favor.") {
-            setUserMessage(messageContent);
+          setUserMessage(messageContent);
         }
         setStatus('in_conversation');
     }
   };
   
+  // EL RESTO DEL CÓDIGO PERMANECE INTACTO
   const handleSaveSession = async () => {
     if (!currentProfile || chatHistory.length < 2) { 
         toast({
@@ -241,7 +285,7 @@ export function HomeworkHelperClient({ subject, initialPrompt, initialChatHistor
             variant: "destructive"
         });
     }
-}
+  }
   
   const handleStartRecording = async () => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -255,12 +299,11 @@ export function HomeworkHelperClient({ subject, initialPrompt, initialChatHistor
         };
         
         mediaRecorderRef.current.onstop = async () => {
-            // This is the single source of truth for processing the audio
             setRecordingStatus('processing');
             
             try {
                 const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-                if (audioBlob.size < 100) { // Check for empty blob
+                if (audioBlob.size < 100) {
                     console.warn("Audio blob is too small, skipping transcription.");
                     setRecordingStatus('idle');
                     return;
@@ -402,7 +445,7 @@ export function HomeworkHelperClient({ subject, initialPrompt, initialChatHistor
                               variant="destructive"
                               size="icon"
                               className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                              onClick={() => { setFile(null); setImageBase64(null); resetFileInput(); }}
+                              onClick={() => { setFile(null); setImageBase64(null); resetFileInput(); }} // --- MODIFICADO ---
                           >
                               <X className="h-4 w-4" />
                           </Button>
@@ -434,7 +477,7 @@ export function HomeworkHelperClient({ subject, initialPrompt, initialChatHistor
                             variant="outline"
                             size="icon"
                             onClick={recordingStatus === 'recording' ? handleStopRecording : handleStartRecording}
-                            disabled={recordingStatus === 'processing' || status === 'processing'}
+                            disabled={status === 'processing' || recordingStatus === 'processing'}
                         >
                             {recordingStatus === 'recording' ? (
                                 <Square className="w-5 h-5 text-red-500" />
@@ -445,7 +488,7 @@ export function HomeworkHelperClient({ subject, initialPrompt, initialChatHistor
                       <Button variant="outline" size="icon" onClick={handleAttachmentClick} disabled={status === 'processing'}>
                           <Paperclip className="w-5 h-5" />
                       </Button>
-                      <Button onClick={handleSendMessage} disabled={status === 'processing' || (!userMessage.trim() && !file)}>
+                      <Button onClick={() => handleSendMessage()} disabled={status === 'processing' || (!userMessage.trim() && !file)}>
                           <Send className="w-4 h-4" />
                       </Button>
                   </div>
