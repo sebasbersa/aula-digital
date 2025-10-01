@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Un agente de IA que ayuda con las tareas escolares de estudiantes de diferentes edades.
@@ -8,7 +7,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import {type Part} from 'genkit'
+import {type Part} from 'genkit';
 
 const ChatMessageSchema = z.object({
   role: z.enum(['user', 'model']),
@@ -43,25 +42,15 @@ const homeworkHelperPrompt = ai.definePrompt({
   prompt: `Eres "LIA", una tutora de IA que ayuda a estudiantes y adultos a aprender. 
   Tu misión es explicar de manera clara, motivadora y paso a paso, como si fueras una profesora particular cercana.
 
-  **PRIORIDAD #1: Si el último mensaje contiene una imagen, basa tu respuesta en ella. Describe lo que ves y enfócate en el primer ejercicio que no se haya resuelto.**
+  **PRIORIDAD #1: Si el último mensaje del usuario contiene una imagen, basa tu respuesta en ella. Describe lo que ves y enfócate en el primer ejercicio que no se haya resuelto.**
   
   **Contexto del Usuario:**
   - Nombre: {{{userName}}}
   - Asignatura o Curso: {{{subjectName}}}
   - Tema actual de la lección: {{{lessonTopic}}}
   
-  **Historial de la conversación:**
-  {{#each chatHistory}}
-  - {{role}}: 
-    {{#if (is_array content)}}
-      {{#each content}}
-        {{#if text}}{{{text}}}{{/if}}
-        {{#if image}}{{media url=image.data}}{{/if}}
-      {{/each}}
-    {{else}}
-      {{{content}}}
-    {{/if}}
-  {{/each}}
+  **Historial de la conversación (para tu referencia):**
+  A continuación viene el historial. Tu respuesta debe continuar esta conversación.
   
   **Reglas Principales:**
   1. Explica siempre paso a paso, usando notación matemática y científica estándar:
@@ -112,32 +101,40 @@ const homeworkHelperFlow = ai.defineFlow(
     outputSchema: HomeworkHelperOutputSchema,
   },
   async (input) => {
-    const history = input.chatHistory ? [...input.chatHistory] : [];
-    const lastUserMessage = history.pop();
-
-    if (!lastUserMessage || lastUserMessage.role !== 'user') {
-      return (await homeworkHelperPrompt(input)).output!;
-    }
+    // 1. Prepara el historial de mensajes para el modelo.
+    const history = input.chatHistory?.map(msg => ({
+      role: msg.role,
+      content: [{ text: msg.content as string }]
+    })) || [];
     
-    // Construimos el contenido del último mensaje. Siempre es una lista de "partes".
-    const lastMessageContent: Part[] = [{ text: lastUserMessage.content as string }];
-
-    // Si hay una imagen, la añadimos como una segunda parte al último mensaje.
-    if (input.photoDataUri) {
-      lastMessageContent.push({ media: { url: input.photoDataUri } });
+    // 2. Extrae el último mensaje del usuario, que es el que podría tener una imagen.
+    const lastUserMessage = history.pop();
+    
+    // 3. Si no hay último mensaje, no hay nada que hacer.
+    if (!lastUserMessage) {
+        return { response: "Hola. ¿En qué puedo ayudarte?" };
     }
 
-    history.push({
-      role: 'user',
-      content: lastMessageContent as any,
+    // 4. Si hay una imagen en la entrada, la adjuntamos al último mensaje.
+    if (input.photoDataUri) {
+        lastUserMessage.content.push({ media: { url: input.photoDataUri } });
+    }
+
+    // 5. Volvemos a añadir el último mensaje (posiblemente con la imagen) al historial.
+    history.push(lastUserMessage);
+
+    // 6. Ejecutamos el prompt, pasando el historial como parte de la llamada a `generate`.
+    const { output } = await ai.generate({
+      prompt: homeworkHelperPrompt.prompt, // Usamos el texto del prompt directamente.
+      history: history as any, // El historial de conversación.
+      model: 'googleai/gemini-2.0-flash',
+      output: {
+        schema: HomeworkHelperOutputSchema
+      },
+      // Pasamos los demás datos del input para que Handlebars los use en el prompt.
+      context: input,
     });
-
-    const finalInput = {
-      ...input,
-      chatHistory: history as any,
-    };
-
-    const { output } = await homeworkHelperPrompt(finalInput);
+    
     return output!;
   }
 );
