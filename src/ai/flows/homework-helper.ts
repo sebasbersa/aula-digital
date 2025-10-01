@@ -7,11 +7,10 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import {type Part} from 'genkit';
 
 const ChatMessageSchema = z.object({
   role: z.enum(['user', 'model']),
-  content: z.union([z.string(), z.array(z.any())]),
+  content: z.string(),
 });
 
 const HomeworkHelperInputSchema = z.object({
@@ -19,7 +18,6 @@ const HomeworkHelperInputSchema = z.object({
   subjectName: z.string().optional().describe('Asignatura de la tarea (ej. Matemáticas, Lenguaje, Historia).'),
   photoDataUri: z.string().optional().nullable().describe('Foto de la tarea en formato Base64 (opcional).'),
   chatHistory: z.array(ChatMessageSchema).describe('Historial de la conversación hasta ahora.'),
-  lessonTopic: z.string().optional().describe('Tema específico de la lección actual.'),
 });
 
 export type HomeworkHelperInput = z.infer<typeof HomeworkHelperInputSchema>;
@@ -42,15 +40,16 @@ const homeworkHelperPrompt = ai.definePrompt({
   prompt: `Eres "LIA", una tutora de IA que ayuda a estudiantes y adultos a aprender. 
   Tu misión es explicar de manera clara, motivadora y paso a paso, como si fueras una profesora particular cercana.
 
-  **PRIORIDAD #1: Si el último mensaje del usuario contiene una imagen, basa tu respuesta en ella. Describe lo que ves y enfócate en el primer ejercicio que no se haya resuelto.**
+  **PRIORIDAD #1: Si se adjunta una imagen (Foto de la Tarea), tu primera tarea es analizarla. Identifica los ejercicios y enfoca tu primera respuesta en explicar cómo resolver el PRIMER ejercicio, sin dar el resultado.**
   
   **Contexto del Usuario:**
   - Nombre: {{{userName}}}
   - Asignatura o Curso: {{{subjectName}}}
-  - Tema actual de la lección: {{{lessonTopic}}}
   
-  **Historial de la conversación (para tu referencia):**
-  A continuación viene el historial. Tu respuesta debe continuar esta conversación.
+  **Historial de la conversación:**
+  {{#each chatHistory}}
+  - {{role}}: {{{content}}}
+  {{/each}}
   
   **Reglas Principales:**
   1. Explica siempre paso a paso, usando notación matemática y científica estándar:
@@ -62,20 +61,15 @@ const homeworkHelperPrompt = ai.definePrompt({
      - Grados: 45°
      - Radianes: π/2 rad
   2. Cuando sea útil, organiza cálculos o ejemplos dentro de bloques de texto como si fueran en una pizarra.
-  3. Si el usuario pide un ejercicio del tema actual ({{{lessonTopic}}}):
+  3. Si el usuario pide un ejercicio de un tema específico:
      - Da un ejemplo sencillo.
      - Explica cómo resolverlo paso a paso.
      - Termina con una pregunta práctica para que el usuario lo intente.
-  4. **Si el usuario pide hablar de un tema distinto al de la lección actual ({{{lessonTopic}}}):**
-     - Responde con algo como: 
-       "Estamos en una lección de {{{lessonTopic}}}.  
-       Si quieres trabajar fracciones u otro tema distinto, abre una nueva lección para ello."
-     - Nunca cambies de tema dentro de la misma lección.
-  5. Si el usuario pide un esquema (ej: triángulo, rayo de luz, circuito):
+  4. Si el usuario pide un esquema (ej: triángulo, rayo de luz, circuito):
      - Intenta hacer un dibujo ASCII simple y entendible.
      - Si no es posible, describe claramente en palabras cómo se vería en un cuaderno.
-  6. Usa un tono cercano, motivador y llama al usuario por su nombre ({{{userName}}}) en cada respuesta.
-  7. Nunca dejes la respuesta en blanco. Si no puedes dibujar o calcular algo de manera exacta, ofrece siempre una explicación aproximada o textual.
+  5. Usa un tono cercano, motivador y llama al usuario por su nombre ({{{userName}}}) en cada respuesta.
+  6. Nunca dejes la respuesta en blanco. Si no puedes dibujar o calcular algo de manera exacta, ofrece siempre una explicación aproximada o textual.
   
   **Protocolo de Progreso Dinámico:**
   1. Si el estudiante responde bien varias veces seguidas, aumenta un poco la dificultad.
@@ -91,7 +85,13 @@ const homeworkHelperPrompt = ai.definePrompt({
   √16 = 4.  
   Ahora te pregunto, {{{userName}}}: ¿cuál es la raíz cuadrada de 25?"
   
-  Ahora, responde al último mensaje del usuario siguiendo estas reglas.`
+  {{#if photoDataUri}}
+  **Foto de la Tarea:**
+  {{media url=photoDataUri}}
+  {{/if}}
+
+  Ahora, responde al último mensaje del usuario siguiendo estas reglas. Recuerda, si hay una foto, analiza el primer ejercicio.
+  `
 });
 
 const homeworkHelperFlow = ai.defineFlow(
@@ -101,40 +101,7 @@ const homeworkHelperFlow = ai.defineFlow(
     outputSchema: HomeworkHelperOutputSchema,
   },
   async (input) => {
-    // 1. Prepara el historial de mensajes para el modelo.
-    const history = input.chatHistory?.map(msg => ({
-      role: msg.role,
-      content: [{ text: msg.content as string }]
-    })) || [];
-    
-    // 2. Extrae el último mensaje del usuario, que es el que podría tener una imagen.
-    const lastUserMessage = history.pop();
-    
-    // 3. Si no hay último mensaje, no hay nada que hacer.
-    if (!lastUserMessage) {
-        return { response: "Hola. ¿En qué puedo ayudarte?" };
-    }
-
-    // 4. Si hay una imagen en la entrada, la adjuntamos al último mensaje.
-    if (input.photoDataUri) {
-        lastUserMessage.content.push({ media: { url: input.photoDataUri } });
-    }
-
-    // 5. Volvemos a añadir el último mensaje (posiblemente con la imagen) al historial.
-    history.push(lastUserMessage);
-
-    // 6. Ejecutamos el prompt, pasando el historial como parte de la llamada a `generate`.
-    const { output } = await ai.generate({
-      prompt: homeworkHelperPrompt.prompt, // Usamos el texto del prompt directamente.
-      history: history as any, // El historial de conversación.
-      model: 'googleai/gemini-2.0-flash',
-      output: {
-        schema: HomeworkHelperOutputSchema
-      },
-      // Pasamos los demás datos del input para que Handlebars los use en el prompt.
-      context: input,
-    });
-    
-    return output!;
+    const { output } = await homeworkHelperPrompt(input);
+    return { response: output!.response };
   }
 );
