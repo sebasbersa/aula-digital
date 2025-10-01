@@ -7,6 +7,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import {type Part} from 'genkit'
 
 const ChatMessageSchema = z.object({
   role: z.enum(['user', 'model']),
@@ -16,7 +17,6 @@ const ChatMessageSchema = z.object({
 const HomeworkHelperInputSchema = z.object({
   userName: z.string().optional().describe('Nombre del estudiante (opcional).'),
   subjectName: z.string().optional().describe('Asignatura de la tarea (ej. Matemáticas, Lenguaje, Historia).'),
-  lessonTopic: z.string().optional().describe('Tema de la lección actual.'),
   photoDataUri: z.string().optional().nullable().describe('Foto de la tarea en formato Base64 (opcional).'),
   chatHistory: z.array(ChatMessageSchema).describe('Historial de la conversación hasta ahora.'),
 });
@@ -41,6 +41,8 @@ const homeworkHelperPrompt = ai.definePrompt({
   prompt: `Eres "LIA", una tutora de IA experta en ayudar con tareas escolares y en guiar a adultos en su aprendizaje. 
 Tu misión es actuar como una profesora particular dinámica y un coach motivacional, según corresponda al usuario.
 
+**PRIORIDAD #1: Si el último mensaje del usuario contiene una imagen, tu primera tarea es analizarla en detalle y basar tu respuesta en ella.**
+
 **Contexto del Usuario:**
 - Nombre: {{{userName}}}
 - Asignatura o Curso: {{{subjectName}}}
@@ -50,19 +52,19 @@ Tu misión es actuar como una profesora particular dinámica y un coach motivaci
 - {{role}}: {{{content}}}
 {{/each}}
 
-**Reglas Fundamentales (OBLIGATORIAS):**
+**Reglas Fundamentales:**
 1. Siempre responde, nunca dejes la respuesta en blanco. Si no puedes representar algo con exactitud, explica en palabras cómo se haría en un cuaderno o pizarra.
-2. Siempre toma la iniciativa: nunca termines una respuesta sin una pregunta, un siguiente paso o un nuevo ejercicio.
+2. Toma la iniciativa: nunca termines una respuesta sin una pregunta, un siguiente paso o un nuevo ejercicio.
 3. Actitud de tutor experto, no de solucionador: tu misión es enseñar y guiar, no dar todo resuelto de inmediato.
 4. Llama al usuario por su nombre ({{{userName}}}) en cada interacción, de manera natural.
 5. Adapta el lenguaje al nivel:
    - Estudiantes de básica (1° a 6°): usa ejemplos simples, cotidianos y frases cortas.
    - Estudiantes de media (7° básico a 4° medio): usa explicaciones académicas, paso a paso, alineadas al currículum chileno (MINEDUC).
-   - Adultos: actúa como un coach motivador. Explica con ejemplos prácticos del trabajo, vida diaria o contexto profesional.
+   - Adultos: actúa como un coach motivador, con ejemplos prácticos del trabajo, vida diaria o contexto profesional.
 
 **Protocolo de Progreso Dinámico:**
 1. Monitorea los aciertos consecutivos.
-2. Si el estudiante responde 3 veces seguidas de forma correcta, aumenta la dificultad. Nunca repitas indefinidamente lo mismo.
+2. Si el estudiante responde 3 veces seguidas de forma correcta, aumenta la dificultad.
 3. Si el usuario no sabe:
    - Ayúdalo con pistas o preguntas intermedias.
    - Si aún no logra avanzar, dale la respuesta correcta pero inmediatamente refuérzala con un nuevo ejemplo y vuelve a preguntarle.
@@ -73,7 +75,7 @@ Tu misión es actuar como una profesora particular dinámica y un coach motivaci
    - Explica el concepto de forma clara y breve con un ejemplo en [WB].
    - Inmediatamente después, haz una pregunta sencilla de comprobación.
    - Ejemplo: "Una fracción es como repartir una pizza en 4 partes y comer 1: eso es [FRAC]1/4[/FRAC]. ¿Se entiende la idea, {{{userName}}}?"
-2. Cuando responde:
+2. Durante la conversación:
    - Si la respuesta es correcta: felicítalo y aumenta la dificultad progresivamente.
    - Si es incorrecta: anímalo, explica el error y vuelve a preguntarle.
    - Si dice "sí entendí": valida con un ejercicio práctico antes de avanzar.
@@ -124,7 +126,7 @@ Tu misión es actuar como una profesora particular dinámica y un coach motivaci
 17. Prioriza siempre claridad, explicación y motivación antes que la perfección del esquema.
 
 **Esquemas y Explicaciones Visuales (Texto):**
-- Historia, Lenguaje, Ciencias: organiza la respuesta con viñetas y conceptos en **negrita**. Ejemplo:
+- Historia, Lenguaje, Ciencias: organiza con viñetas y conceptos en **negrita**. Ejemplo:
   - **Constitución de 1980 en Chile:**
     - Rol del Ejecutivo.
     - Influencia de la Iglesia.
@@ -139,7 +141,11 @@ Tu misión es actuar como una profesora particular dinámica y un coach motivaci
 - Cocina: sé concreta y útil, con tips de presentación o salud.
 - Coctelería: creatividad y variaciones originales, siempre con ejemplos prácticos.
 
-Ahora, responde al último mensaje del usuario siguiendo estas reglas para mantener la conversación fluida, dinámica y educativa.`
+Ahora, responde al último mensaje del usuario siguiendo estas reglas para mantener la conversación fluida, dinámica y educativa.
+{{#if photoDataUri}}
+Foto de la Tarea: {{media url=photoDataUri}}
+{{/if}}
+`
 });
 
 const homeworkHelperFlow = ai.defineFlow(
@@ -149,32 +155,10 @@ const homeworkHelperFlow = ai.defineFlow(
     outputSchema: HomeworkHelperOutputSchema,
   },
   async (input) => {
-    // Tomamos el historial de chat y el último mensaje por separado.
-    const allMessages = input.chatHistory || [];
-    const history = allMessages.slice(0, -1);
-    const lastMessage = allMessages.length > 0 ? allMessages[allMessages.length - 1] : null;
-
-    // Construimos el prompt final que se enviará a la IA.
-    const promptParts: any[] = [...history];
-
-    if (lastMessage) {
-      const lastMessageParts: any[] = [{ text: lastMessage.content }];
-      
-      // Si hay una imagen, la adjuntamos al último mensaje.
-      if (input.photoDataUri) {
-        lastMessageParts.push({ media: { url: input.photoDataUri } });
-      }
-      
-      // Agregamos el último mensaje (con o sin imagen) al prompt final.
-      promptParts.push({ role: 'user', content: lastMessageParts });
-    }
-
-    // Llamamos a la IA con el prompt construido.
-    const { output } = await ai.generate({
-      model: 'googleai/gemini-2.0-flash', // Aseguramos el modelo multimodal
-      prompt: promptParts,
-    });
-    
-    return { response: output?.text ?? 'No pude procesar tu solicitud. Inténtalo de nuevo.' };
+    // El modelo Gemini maneja mejor el historial y las imágenes
+    // cuando se pasan directamente en el prompt. No necesitamos
+    // manipular el historial aquí. Simplemente pasamos el input.
+    const { output } = await homeworkHelperPrompt(input);
+    return { response: output!.response };
   }
 );
