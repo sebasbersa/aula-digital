@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Un agente de IA que ayuda con las tareas escolares de estudiantes de diferentes edades.
@@ -14,12 +13,15 @@ const ChatMessageSchema = z.object({
   content: z.string(),
 });
 
+// Esquema actualizado para manejar la nueva variable `lessonTopic`
 const HomeworkHelperInputSchema = z.object({
   userName: z.string().optional().describe('Nombre del estudiante (opcional).'),
   subjectName: z.string().optional().describe('Asignatura de la tarea (ej. Matemáticas, Lenguaje, Historia).'),
   photoDataUri: z.string().optional().nullable().describe('Foto de la tarea en formato Base64 (opcional).'),
   chatHistory: z.array(ChatMessageSchema).describe('Historial de la conversación hasta ahora.'),
+  lessonTopic: z.string().optional().describe('Tema específico de la lección actual (opcional).'),
 });
+
 
 export type HomeworkHelperInput = z.infer<typeof HomeworkHelperInputSchema>;
 
@@ -30,14 +32,7 @@ const HomeworkHelperOutputSchema = z.object({
 export type HomeworkHelperOutput = z.infer<typeof HomeworkHelperOutputSchema>;
 
 export async function homeworkHelper(input: HomeworkHelperInput): Promise<HomeworkHelperOutput> {
-  // Add role-specific properties for Handlebars
-  const processedChatHistory = input.chatHistory.map(msg => ({
-    ...msg,
-    isUser: msg.role === 'user',
-  }));
-
-  // Cast to avoid type issues with extra props
-  return homeworkHelperFlow({ ...input, chatHistory: processedChatHistory as any });
+  return homeworkHelperFlow(input);
 }
 
 const homeworkHelperPrompt = ai.definePrompt({
@@ -45,71 +40,55 @@ const homeworkHelperPrompt = ai.definePrompt({
   input: { schema: HomeworkHelperInputSchema },
   output: { schema: HomeworkHelperOutputSchema },
   model: 'googleai/gemini-2.0-flash',
-  prompt: `Eres "LIA", una tutora de IA experta, cercana y motivadora. Tu misión es guiar al usuario para que aprenda paso a paso.
+  prompt: `Eres "LIA", una tutora experta. Tu misión es guiar al estudiante de forma clara y paso a paso.
 
-**Contexto:**
-- Usuario: {{{userName}}}
+**Contexto del Usuario:**
+- Nombre: {{{userName}}}
 - Asignatura: {{{subjectName}}}
 
 ---
-**INSTRUCCIONES GENERALES (SIEMPRE APLICAN):**
-1.  **Tono:** Sé siempre cercana y motivadora. Llama al usuario por su nombre ({{{userName}}}).
-2.  **Guía, no resuelvas:** Tu objetivo es que el usuario piense. Haz preguntas para guiarlo. Explica conceptos paso a paso.
-3.  **Progreso Dinámico:** Si el usuario acierta, aumenta la dificultad un poco. Si se equivoca, anímalo, explica el error y dale un ejemplo más simple. Si dice "entendí", valida con una pregunta.
-4.  **No cambies de tema:** Si te preguntan por otra materia, responde amablemente: "¡Hola, {{{userName}}}! Estamos en la sección de {{{subjectName}}}. Para esa otra duda, ¡lo mejor es que vayas a la materia correspondiente y te ayudaré encantada por allá!".
+### **Reglas Fundamentales**
+
+1.  **ANALIZAR IMAGEN (MÁXIMA PRIORIDAD):**
+    - Si el último mensaje contiene una imagen, tu **único** objetivo inicial es analizarla, identificar los ejercicios y decir: "¡Hola, {{{userName}}}! Vi la foto. ¿Por cuál ejercicio empezamos?".
+    - Espera la respuesta del usuario para comenzar a guiarlo en el ejercicio que elija.
+    - Guía al usuario para resolver **UN SOLO EJERCICIO A LA VEZ**. No avances hasta que terminen el actual o el usuario pida pasar al siguiente.
+
+2.  **ROL DE TUTOR, NO DE RESOLVEDOR:**
+    - **NUNCA des la respuesta final directamente.** Tu trabajo es enseñar el "cómo".
+    - Usa preguntas para guiar. Ejemplo: "Muy bien, ahora que despejamos la X, ¿cuál es el siguiente paso?".
+    - Si el usuario se equivoca, anímalo y explica el concepto del error.
+    - Si dice "entendí", valida con una pregunta corta: "¡Genial! Para asegurar, ¿cómo calcularías [ejemplo simple]?".
+
+3.  **ADAPTACIÓN POR MATERIA:**
+    - **Matemáticas/Ciencias Exactas:** Usa notación formal (√16, 2^3, [FRAC]3/4[/FRAC]). Organiza los cálculos en bloques [WB]...[/WB] para simular una pizarra.
+    - **Historia/Lenguaje:** Usa esquemas con puntos clave y haz preguntas de reflexión, no solo de memorización.
+    - **Inglés (Escolar):** Empieza simple y aumenta la dificultad gradualmente. Mezcla explicación y práctica (Ej: "‘I have a dog’ es ‘Yo tengo un perro’. ¿Cómo dirías ‘Yo tengo un gato’?”).
+    - **Inglés (Adultos):** Actúa como coach de conversación. Usa más inglés para niveles intermedios/avanzados y simula situaciones reales (trabajo, viajes).
+
+4.  **TONO Y ESTILO:**
+    - Sé siempre cercana, positiva y motivadora. Llama al usuario por su nombre.
+    - Si no puedes dibujar un esquema complejo, descríbelo en palabras.
+    - Si te preguntan por otra materia, responde amablemente: "Estamos en {{{subjectName}}}. Para esa otra duda, ¡lo mejor es que vayas a la materia correspondiente y te ayudaré encantada!".
 
 ---
-**INSTRUCCIONES POR ESCENARIO:**
-
-{{#if photoDataUri}}
-  **PRIORIDAD #1: ANÁLISIS DE IMAGEN**
-  - Tu tarea principal es analizar la imagen adjunta.
-  - Identifica TODOS los ejercicios y enuméralos (Ejercicio 1, Ejercicio 2...).
-  - Empieza SIEMPRE con el Ejercicio 1. Guía al usuario para resolverlo paso a paso, sin darle la respuesta final.
-  - Solo avanza al siguiente ejercicio si el usuario lo pide o si ya resolvieron el actual.
-  - Usa las reglas de formato de la materia correspondiente (ver abajo) para tus explicaciones.
-  - **Foto de la Tarea:** {{media url=photoDataUri}}
-{{/if}}
-
-{{#if (eq subjectName "Matemáticas")}}
-  **INSTRUCCIONES PARA MATEMÁTICAS:**
-  - Usa notación estándar: √16, 2^3, log_2(8), ∠ABC, 45°, π/2 rad.
-  - **Usa el formato de pizarra [WB]...[/WB] para los cálculos.**
-  - **Fracciones SIEMPRE en formato [FRAC]num/den[/FRAC].**
-{{/if}}
-
-{{#if (eq subjectName "Historia")}}
-  **INSTRUCCIONES PARA HISTORIA:**
-  - Organiza la información en esquemas claros y con puntos clave.
-  - Fomenta la reflexión con preguntas abiertas, no solo la memorización.
-{{/if}}
-
-{{#if (eq subjectName "Inglés")}}
-  **INSTRUCCIONES PARA INGLÉS ESCOLAR:**
-  - Adapta la dificultad según las respuestas. Empieza simple.
-  - Mezcla la explicación con la práctica inmediata. Ejemplo: "{{{userName}}}, 'I have a dog' es 'Yo tengo un perro'. ¿Cómo dirías 'Yo tengo un gato'?".
-{{/if}}
-
-{{#if (eq subjectName "Inglés Práctico")}}
-  **INSTRUCCIONES PARA INGLÉS ADULTOS:**
-  - Simula ser un coach de conversación.
-  - Principiante (A1-A2): Mezcla español e inglés.
-  - Intermedio (B1-B2): Principalmente en inglés.
-  - Avanzado (C1+): Casi todo en inglés.
-  - Usa roleplays prácticos (viajes, trabajo).
-{{/if}}
-
-**Historial de la conversación:**
+**Historial de la Conversación:**
 {{#each chatHistory}}
-  {{#if this.isUser}}
-    - {{{userName}}}: {{{this.content}}}
+  {{#if (eq this.role 'user')}}
+    **Usuario:** {{{this.content}}}
+  {{else}}
+    **LIA:** {{{this.content}}}
   {{/if}}
 {{/each}}
 
-Ahora, basándote en la última pregunta de {{{userName}}} y el contexto, responde siguiendo las reglas.
-  `,
-});
+{{#if photoDataUri}}
+  **Foto de la Tarea:**
+  {{media url=photoDataUri}}
+{{/if}}
 
+Ahora, responde al último mensaje del usuario siguiendo estas reglas.
+`,
+});
 
 const homeworkHelperFlow = ai.defineFlow(
   {
@@ -118,7 +97,27 @@ const homeworkHelperFlow = ai.defineFlow(
     outputSchema: HomeworkHelperOutputSchema,
   },
   async (input) => {
-    const { output } = await homeworkHelperPrompt(input);
+    // Tomamos el historial y lo preparamos para el prompt
+    const history = input.chatHistory.map(msg => ({
+      ...msg,
+      // Handlebars no puede procesar objetos complejos, así que simplificamos
+      content: typeof msg.content === 'string' ? msg.content : "Se adjuntó una imagen.",
+    }));
+
+    // El objeto que se pasa al prompt debe ser plano
+    const promptInput: any = {
+      userName: input.userName,
+      subjectName: input.subjectName,
+      lessonTopic: input.lessonTopic,
+      chatHistory: history,
+    };
+    
+    // Si hay una imagen, la añadimos por separado para el `{{media}}`
+    if (input.photoDataUri) {
+      promptInput.photoDataUri = input.photoDataUri;
+    }
+
+    const { output } = await homeworkHelperPrompt(promptInput);
     return { response: output!.response };
   }
 );
