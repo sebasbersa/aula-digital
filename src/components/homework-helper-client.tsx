@@ -401,7 +401,7 @@ export function HomeworkHelperClient({ subject, initialPrompt, initialChatHistor
                           <div className="text-center text-muted-foreground pt-16">
                               <BrainCircuit className="mx-auto h-12 w-12 mb-4" />
                               <p className="font-semibold">¡Hola! Soy LIA.</p>
-                              <p>Escribe una pregunta, graba tu voz o sube una foto para empezar.</p>
+                              <p>Cuéntame, ¿qué te gustaría aprender hoy?</p>
                           </div>
                       )}
                       {chatHistory.map((msg, index) => (
