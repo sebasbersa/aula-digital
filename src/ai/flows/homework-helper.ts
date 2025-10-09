@@ -29,7 +29,17 @@ const HomeworkHelperOutputSchema = z.object({
 export type HomeworkHelperOutput = z.infer<typeof HomeworkHelperOutputSchema>;
 
 export async function homeworkHelper(input: HomeworkHelperInput): Promise<HomeworkHelperOutput> {
-  return homeworkHelperFlow(input);
+  // Add role-specific properties for Handlebars
+  const processedChatHistory = input.chatHistory.map(msg => ({
+    ...msg,
+    isUser: msg.role === 'user',
+    isModel: msg.role === 'model',
+  }));
+
+  return homeworkHelperFlow({
+    ...input,
+    chatHistory: processedChatHistory as any, // Cast to avoid type issues with extra props
+  });
 }
 
 const homeworkHelperPrompt = ai.definePrompt({
@@ -42,13 +52,19 @@ const homeworkHelperPrompt = ai.definePrompt({
 
   **PRIORIDAD #1: Si se adjunta una imagen (Foto de la Tarea), tu primera tarea es analizar, identificar y recordar en tu memoria los ejercicios que hay en ella. Ayuda al usuario a resolver todos los ejericios, pero uno a la vez. No le des los resultados de los ejercicios, el usuario los debe resolver.**
   
-  **Contexto del Usuario:**
-  - Nombre: {{{userName}}}
-  - Asignatura o Curso: {{{subjectName}}}
-  
-  **Historial de la conversación:**
+  **Contexto del Usuario (solo para tu referencia):**
+  - El usuario se llama {{{userName}}} y su asignatura actual es {{{subjectName}}}.
+  - Usa esta información solo como contexto.  
+  - Si ya hay un historial de conversación, responde directamente al último mensaje del usuario sin usar saludos iniciales como 'Hola' o '¿Cómo estás?'".
+
+  **Historial de la conversación previa:**
   {{#each chatHistory}}
-  - {{role}}: {{{content}}}
+    {{#if this.isUser}}
+      Usuario: {{{this.content}}}
+    {{/if}}
+    {{#if this.isModel}}
+      LIA: {{{this.content}}}
+    {{/if}}
   {{/each}}
   
   **Reglas Principales:**
@@ -62,7 +78,7 @@ const homeworkHelperPrompt = ai.definePrompt({
      - Grados: 45°
      - Radianes: π/2 rad
   3. Cuando sea útil, organiza cálculos o ejemplos dentro de bloques de texto como si fueran en una pizarra.
-  4. Si el usuario pide un ejercicio del tema actual ({{{lessonTopic}}})::
+  4. Si el usuario pide un ejercicio del tema actual ({{{lessonTopic}}}):
      - Da un ejemplo sencillo.
      - Explica cómo resolverlo paso a paso.
      - Termina con una pregunta práctica para que el usuario lo intente.
@@ -71,10 +87,9 @@ const homeworkHelperPrompt = ai.definePrompt({
        "Estamos en una lección de {{{lessonTopic}}}.  
        Si quieres trabajar fracciones u otro tema distinto, abre una nueva lección para ello."
      - Nunca cambies de tema dentro de la misma lección.
-  4. Si el usuario pide un esquema (ej: triángulo, rayo de luz, circuito):
+  5. Si el usuario pide un esquema (ej: triángulo, rayo de luz, circuito):
      - Intenta hacer un dibujo ASCII simple y entendible.
      - Si no es posible, describe claramente en palabras cómo se vería en un cuaderno.
-  5. Usa un tono cercano, motivador y llama al usuario por su nombre ({{{userName}}}) en cada respuesta.
   6. Nunca dejes la respuesta en blanco. Si no puedes dibujar o calcular algo de manera exacta, ofrece siempre una explicación aproximada o textual.
   
   **Protocolo de Progreso Dinámico:**
@@ -97,7 +112,7 @@ const homeworkHelperPrompt = ai.definePrompt({
   {{/if}}
 
   Ahora, responde al último mensaje del usuario siguiendo estas reglas.
-  `
+  `,
 });
 
 const homeworkHelperFlow = ai.defineFlow(

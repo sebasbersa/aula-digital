@@ -174,19 +174,19 @@ export async function addMember(ownerId: string, memberData: Partial<Member>, is
             createdAt: new Date(),
         };
 
-        // If this is the owner profile, also create their first 'guardian' profile
-        if (isOwnerProfile) {
-            const guardianProfilePayload = {
-                ownerId: ownerId,
-                name: memberData.name,
-                lastName: memberData.lastName || '',
-                role: 'guardian' as Role,
-                avatarUrl: memberData.avatarUrl,
-                isOwnerProfile: false, // This is NOT the main owner profile
-                createdAt: serverTimestamp(),
-            };
-            await addDoc(collection(db, 'members'), guardianProfilePayload);
-        }
+// if (isOwnerProfile) {
+//   const guardianProfilePayload = {
+//     ownerId: ownerId,
+//     name: memberData.name,
+//     lastName: memberData.lastName || '',
+//     role: 'guardian' as Role,
+//     avatarUrl: memberData.avatarUrl,
+//     isOwnerProfile: false,
+//     createdAt: serverTimestamp(),
+//   };
+//   await addDoc(collection(db, 'members'), guardianProfilePayload);
+// }
+
         
         return finalPayload;
 
