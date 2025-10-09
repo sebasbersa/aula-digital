@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Un agente de IA que ayuda con las tareas escolares de estudiantes de diferentes edades.
@@ -18,6 +19,7 @@ const HomeworkHelperInputSchema = z.object({
   subjectName: z.string().optional().describe('Asignatura de la tarea (ej. Matemáticas, Lenguaje, Historia).'),
   photoDataUri: z.string().optional().nullable().describe('Foto de la tarea en formato Base64 (opcional).'),
   chatHistory: z.array(ChatMessageSchema).describe('Historial de la conversación hasta ahora.'),
+  lessonTopic: z.string().optional(),
 });
 
 export type HomeworkHelperInput = z.infer<typeof HomeworkHelperInputSchema>;
@@ -29,17 +31,7 @@ const HomeworkHelperOutputSchema = z.object({
 export type HomeworkHelperOutput = z.infer<typeof HomeworkHelperOutputSchema>;
 
 export async function homeworkHelper(input: HomeworkHelperInput): Promise<HomeworkHelperOutput> {
-  // Add role-specific properties for Handlebars
-  const processedChatHistory = input.chatHistory.map(msg => ({
-    ...msg,
-    isUser: msg.role === 'user',
-    isModel: msg.role === 'model',
-  }));
-
-  return homeworkHelperFlow({
-    ...input,
-    chatHistory: processedChatHistory as any, // Cast to avoid type issues with extra props
-  });
+  return homeworkHelperFlow(input);
 }
 
 const homeworkHelperPrompt = ai.definePrompt({
@@ -122,7 +114,19 @@ const homeworkHelperFlow = ai.defineFlow(
     outputSchema: HomeworkHelperOutputSchema,
   },
   async (input) => {
-    const { output } = await homeworkHelperPrompt(input);
+    // Add role-specific properties for Handlebars
+    const processedChatHistory = input.chatHistory.map(msg => ({
+      ...msg,
+      isUser: msg.role === 'user',
+      isModel: msg.role === 'model',
+    }));
+
+    const processedInput = {
+        ...input,
+        chatHistory: processedChatHistory,
+    };
+
+    const { output } = await homeworkHelperPrompt(processedInput);
     return { response: output!.response };
   }
 );
