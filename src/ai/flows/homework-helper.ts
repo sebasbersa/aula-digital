@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Un agente de IA que ayuda con las tareas escolares de estudiantes de diferentes edades.
@@ -33,6 +32,7 @@ export type HomeworkHelperOutput = z.infer<typeof HomeworkHelperOutputSchema>;
 // Input schema for the prompt now includes the formatted history string
 const PromptInputSchema = HomeworkHelperInputSchema.extend({
     formattedChatHistory: z.string(),
+    lastUserMessage: z.string(),
 });
 
 
@@ -102,7 +102,7 @@ const homeworkHelperPrompt = ai.definePrompt({
   {{media url=photoDataUri}}
   {{/if}}
 
-  Ahora, responde al último mensaje del usuario siguiendo estas reglas.
+  Ahora, responde directamente a la última pregunta del usuario: "{{{lastUserMessage}}}", siguiendo todas las reglas y manteniendo la conversación fluida.
   `,
 });
 
@@ -113,8 +113,11 @@ const homeworkHelperFlow = ai.defineFlow(
     outputSchema: HomeworkHelperOutputSchema,
   },
   async (input) => {
-    // Manually process chat history into a string
-    const formattedChatHistory = input.chatHistory
+    // Separate the last message from the rest of the history
+    const lastUserMessage = input.chatHistory[input.chatHistory.length - 1]?.content || '';
+    const conversationHistory = input.chatHistory.slice(0, -1);
+
+    const formattedChatHistory = conversationHistory
       .map(msg => {
         if (msg.role === 'user') {
           return `Usuario: ${msg.content}`;
@@ -123,10 +126,11 @@ const homeworkHelperFlow = ai.defineFlow(
       })
       .join('\n');
 
-    // Create the input for the prompt, including the formatted string
-    const processedInput = {
+    // Create the input for the prompt, including the formatted string and the last message
+    const processedInput: z.infer<typeof PromptInputSchema> = {
         ...input,
         formattedChatHistory: formattedChatHistory,
+        lastUserMessage: lastUserMessage,
     };
 
     const { output } = await homeworkHelperPrompt(processedInput);
