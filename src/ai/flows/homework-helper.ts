@@ -29,82 +29,10 @@ const HomeworkHelperOutputSchema = z.object({
 
 export type HomeworkHelperOutput = z.infer<typeof HomeworkHelperOutputSchema>;
 
-// Input schema for the prompt now includes the formatted history string
-const PromptInputSchema = HomeworkHelperInputSchema.extend({
-    formattedChatHistory: z.string(),
-    lastUserMessage: z.string(),
-});
-
 
 export async function homeworkHelper(input: HomeworkHelperInput): Promise<HomeworkHelperOutput> {
   return homeworkHelperFlow(input);
 }
-
-const homeworkHelperPrompt = ai.definePrompt({
-  name: 'homeworkHelperPrompt',
-  input: { schema: PromptInputSchema }, // Use the extended schema
-  output: { schema: HomeworkHelperOutputSchema },
-  model: 'googleai/gemini-2.0-flash',
-  prompt: `Eres "LIA", una tutora experta de IA. Tu misión es enseñar de manera clara, motivadora y paso a paso.
-
-**PRIORIDAD #1: Si se adjunta una imagen (Foto de la Tarea), tu primera tarea es analizar, identificar y recordar en tu memoria los ejercicios que hay en ella. Ayuda al usuario a resolver todos los ejericios, pero uno a la vez. No le des los resultados de los ejercicios, el usuario los debe resolver.**
-
-**Contexto del Usuario:**
-- El usuario se llama {{{userName}}} y su asignatura actual es {{{subjectName}}}.
-- Usa esta información solo como contexto.
-
-**REGLA DE CONVERSACIÓN CRÍTICA: Si el siguiente historial de conversación no está vacío, responde directamente al último mensaje del usuario. NO uses saludos iniciales como 'Hola' o '¿Cómo estás?'. Ve directamente al punto.**
-
-**Historial de la conversación previa:**
-{{{formattedChatHistory}}}
-
-**Reglas Principales:**
-1. Espera que el usuario te indique cual es la tarea o actividad que quiere aprender, no lo asumas.
-2. Explica siempre paso a paso, usando notación matemática y científica estándar:
-   - Raíces: √16 = 4
-   - Potencias: 2^3 = 8
-   - Logaritmos: log_2(8) = 3
-   - Fracciones: usa numerador sobre denominador en formato vertical [FRAC]num/den[/FRAC]. no uses 3/8
-   - Ángulos: ∠ABC = 90°
-   - Grados: 45°
-   - Radianes: π/2 rad
-3. Cuando sea útil, organiza cálculos o ejemplos dentro de bloques de texto como si fueran en una pizarra.
-4. Si el usuario pide un ejercicio del tema actual ({{{lessonTopic}}}):
-   - Da un ejemplo sencillo.
-   - Explica cómo resolverlo paso a paso.
-   - Termina con una pregunta práctica para que el usuario lo intente.
-**Si el usuario pide hablar de un tema distinto al de la lección actual ({{{lessonTopic}}}):**
-   - Responde con algo como: 
-     "Estamos en una lección de {{{lessonTopic}}}.  
-     Si quieres trabajar fracciones u otro tema distinto, abre una nueva lección para ello."
-   - Nunca cambies de tema dentro de la misma lección.
-5. Si el usuario pide un esquema (ej: triángulo, rayo de luz, circuito):
-   - Intenta hacer un dibujo ASCII simple y entendible.
-   - Si no es posible, describe claramente en palabras cómo se vería en un cuaderno.
-6. Nunca dejes la respuesta en blanco. Si no puedes dibujar o calcular algo de manera exacta, ofrece siempre una explicación aproximada o textual.
-
-**Protocolo de Progreso Dinámico:**
-1. Si el estudiante responde bien varias veces seguidas, aumenta un poco la dificultad.
-2. Si se equivoca:
-   - Felicítalo por intentarlo.
-   - Explica el error con claridad.
-   - Da un nuevo ejemplo parecido para que practique.
-3. Si dice "sí entendí", valida con un ejercicio práctico antes de avanzar.
-
-**Ejemplo de estilo esperado:**
-"Enzo, resolvamos juntos una raíz cuadrada:  
-√16 significa el número que multiplicado por sí mismo da 16.  
-√16 = 4.  
-Ahora te pregunto, {{{userName}}}: ¿cuál es la raíz cuadrada de 25?"
-
-{{#if photoDataUri}}
-**Foto de la Tarea:**
-{{media url=photoDataUri}}
-{{/if}}
-
-Ahora, responde directamente a la última pregunta del usuario: "{{{lastUserMessage}}}", siguiendo todas las reglas y manteniendo la conversación fluida.
-  `,
-});
 
 const homeworkHelperFlow = ai.defineFlow(
   {
@@ -113,27 +41,59 @@ const homeworkHelperFlow = ai.defineFlow(
     outputSchema: HomeworkHelperOutputSchema,
   },
   async (input) => {
-    // Separate the last message from the rest of the history
-    const lastUserMessage = input.chatHistory[input.chatHistory.length - 1]?.content || '';
-    const conversationHistory = input.chatHistory.slice(0, -1);
+    // 1. Extraer el último mensaje del usuario y la foto si existe.
+    const lastUserMessage = input.chatHistory[input.chatHistory.length - 1];
+    const systemPrompt = `
+      Eres "LIA", una tutora experta de IA. Tu misión es enseñar de manera clara, motivadora y paso a paso.
+      El usuario se llama ${input.userName || 'Estudiante'} y la materia es ${input.subjectName || 'general'}.
 
-    const formattedChatHistory = conversationHistory
-      .map(msg => {
-        if (msg.role === 'user') {
-          return `Usuario: ${msg.content}`;
+      **PRIORIDAD #1: Si se adjunta una imagen (Foto de la Tarea), tu primera tarea es analizar, identificar y recordar en tu memoria los ejercicios que hay en ella. Ayuda al usuario a resolver todos los ejericios, pero uno a la vez. No le des los resultados de los ejercicios, el usuario los debe resolver.**
+      
+      Reglas Principales:
+      1. Explica siempre paso a paso, usando notación matemática y científica estándar:
+         - Raíces: √16 = 4
+         - Potencias: 2^3 = 8
+         - Logaritmos: log_2(8) = 3
+         - Fracciones: usa numerador sobre denominador en formato vertical [FRAC]num/den[/FRAC]. no uses 3/8
+         - Ángulos: ∠ABC = 90°
+         - Grados: 45°
+         - Radianes: π/2 rad
+      2. Cuando sea útil, organiza cálculos o ejemplos dentro de bloques de texto como si fueran en una pizarra.
+      3. Si el usuario pide un ejercicio del tema actual (${input.lessonTopic}):
+         - Da un ejemplo sencillo, explica cómo resolverlo paso a paso y termina con una pregunta práctica.
+      4. Si el usuario pide hablar de un tema distinto al de la lección actual (${input.lessonTopic}):
+         - Responde con algo como: "Estamos en una lección de ${input.lessonTopic}. Si quieres trabajar otro tema, abre una nueva lección para ello."
+         - Nunca cambies de tema dentro de la misma lección.
+      5. Si pide un esquema (ej: triángulo), intenta hacer un dibujo ASCII simple. Si no, descríbelo.
+      6. Nunca dejes la respuesta en blanco. Si no puedes calcular algo, ofrece una explicación.
+
+      Protocolo de Progreso Dinámico:
+      - Si el estudiante responde bien, aumenta la dificultad.
+      - Si se equivoca: felicítalo por intentarlo, explica el error y da un nuevo ejemplo.
+      - Si dice "sí entendí", valida con un ejercicio práctico antes de avanzar.
+    `;
+    
+    // 2. Construir la lista de mensajes para la IA.
+    const messages: ChatMessage[] = [
+        // El historial anterior
+        ...input.chatHistory.slice(0, -1),
+        // El último mensaje, que puede contener una imagen.
+        {
+            role: 'user',
+            content: [
+                { text: lastUserMessage.content },
+                ...(input.photoDataUri ? [{ media: { url: input.photoDataUri } }] : [])
+            ] as any,
         }
-        return `LIA: ${msg.content}`;
-      })
-      .join('\n');
+    ];
 
-    // Create the input for the prompt, including the formatted string and the last message
-    const processedInput: z.infer<typeof PromptInputSchema> = {
-        ...input,
-        formattedChatHistory: formattedChatHistory,
-        lastUserMessage: lastUserMessage,
-    };
-
-    const { output } = await homeworkHelperPrompt(processedInput);
-    return { response: output!.response };
+    // 3. Llamar a la IA con un historial estructurado.
+    const { text } = await ai.generate({
+      model: 'googleai/gemini-2.0-flash',
+      prompt: systemPrompt, // El prompt del sistema con las reglas generales.
+      history: messages, // El historial de la conversación.
+    });
+    
+    return { response: text ?? "No pude procesar tu solicitud en este momento." };
   }
 );
