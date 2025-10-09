@@ -30,13 +30,19 @@ const HomeworkHelperOutputSchema = z.object({
 
 export type HomeworkHelperOutput = z.infer<typeof HomeworkHelperOutputSchema>;
 
+// Input schema for the prompt now includes the formatted history string
+const PromptInputSchema = HomeworkHelperInputSchema.extend({
+    formattedChatHistory: z.string(),
+});
+
+
 export async function homeworkHelper(input: HomeworkHelperInput): Promise<HomeworkHelperOutput> {
   return homeworkHelperFlow(input);
 }
 
 const homeworkHelperPrompt = ai.definePrompt({
   name: 'homeworkHelperPrompt',
-  input: { schema: HomeworkHelperInputSchema },
+  input: { schema: PromptInputSchema }, // Use the extended schema
   output: { schema: HomeworkHelperOutputSchema },
   model: 'googleai/gemini-2.0-flash',
   prompt: `Eres "LIA", una tutora de IA que ayuda a estudiantes y adultos a aprender. 
@@ -50,14 +56,7 @@ const homeworkHelperPrompt = ai.definePrompt({
   - Si ya hay un historial de conversación, responde directamente al último mensaje del usuario sin usar saludos iniciales como 'Hola' o '¿Cómo estás?'".
 
   **Historial de la conversación previa:**
-  {{#each chatHistory}}
-    {{#if this.isUser}}
-      Usuario: {{{this.content}}}
-    {{/if}}
-    {{#if this.isModel}}
-      LIA: {{{this.content}}}
-    {{/if}}
-  {{/each}}
+  {{{formattedChatHistory}}}
   
   **Reglas Principales:**
   1. Espera que el usuario te indique cual es la tarea o actividad que quiere aprender, no lo asumas.
@@ -114,16 +113,20 @@ const homeworkHelperFlow = ai.defineFlow(
     outputSchema: HomeworkHelperOutputSchema,
   },
   async (input) => {
-    // Add role-specific properties for Handlebars
-    const processedChatHistory = input.chatHistory.map(msg => ({
-      ...msg,
-      isUser: msg.role === 'user',
-      isModel: msg.role === 'model',
-    }));
+    // Manually process chat history into a string
+    const formattedChatHistory = input.chatHistory
+      .map(msg => {
+        if (msg.role === 'user') {
+          return `Usuario: ${msg.content}`;
+        }
+        return `LIA: ${msg.content}`;
+      })
+      .join('\n');
 
+    // Create the input for the prompt, including the formatted string
     const processedInput = {
         ...input,
-        chatHistory: processedChatHistory,
+        formattedChatHistory: formattedChatHistory,
     };
 
     const { output } = await homeworkHelperPrompt(processedInput);
