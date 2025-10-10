@@ -57,7 +57,7 @@ const homeworkHelperPrompt = ai.definePrompt({
 ---
 **Historial de Conversación:**
 {{#each chatHistory}}
-- **{{#if (eq role 'user')}}Usuario{{else}}LIA{{/if}}:** {{{content}}}
+- **{{#if (eq role "user")}}Usuario{{else}}LIA{{/if}}:** {{{content}}}
 {{/each}}
 
 ---
