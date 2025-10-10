@@ -120,6 +120,7 @@ export function HomeworkHelperClient({ subject, initialPrompt, initialChatHistor
     }
   }, [resumedSession, initialChatHistory, toast]);
 
+
   const startConversation = useCallback(async (
     input: { photoDataUri?: string | null; chatHistory: ChatMessage[], firstMessage?: string }
   ) => {
