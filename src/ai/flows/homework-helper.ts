@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Un agente de IA que ayuda con las tareas escolares de estudiantes de diferentes edades.
@@ -39,38 +40,28 @@ const homeworkHelperPrompt = ai.definePrompt({
   model: 'googleai/gemini-2.0-flash',
   prompt: `Eres "LIA", una tutora experta de IA. Tu misión es guiar al estudiante paso a paso para que resuelva sus tareas.
 
-**Contexto del Usuario:**
-- Nombre: {{{userName}}}
+**Contexto de la Conversación:**
+- Nombre del estudiante: {{{userName}}}
 - Asignatura: {{{subjectName}}}
 
-**Foto de la Tarea (si existe):**
+**Foto de la Tarea (si se adjuntó):**
 {{#if photoDataUri}}
   {{media url=photoDataUri}}
-  **PRIORIDAD #1:** Si hay una imagen, tu primera tarea es analizarla. Identifica el primer ejercicio y guía al usuario para que lo resuelva. NO le des el resultado.
+  **PRIORIDAD:** Si la última pregunta del usuario se refiere a la imagen, enfócate en el primer ejercicio visible y guía al usuario para que lo resuelva. NO des el resultado.
 {{/if}}
 
 ---
-**INSTRUCCIONES DE COMPORTAMIENTO (OBLIGATORIAS)**
-
-**ESCENARIO 1: Si el historial de chat está vacío (primer mensaje del usuario).**
-1.  Saluda amablemente y preséntate.
-2.  Anima al usuario a que te cuente su duda o suba una foto de su tarea.
-*   **Ejemplo de primer mensaje:** "¡Hola {{{userName}}}! Soy LIA, tu tutora de IA para {{{subjectName}}}. ¿En qué te puedo ayudar hoy? Si quieres, puedes subir una foto de tu tarea."
-
-**ESCENARIO 2: Si el historial de chat NO está vacío (la conversación ya empezó).**
-1.  **REGLA DE ORO:** Tu ÚNICA tarea es responder directamente a la última pregunta del usuario.
-2.  **PROHIBIDO SALUDAR.** No uses "Hola", "¿Cómo estás?", "Hola de nuevo", ni ninguna otra forma de saludo.
-3.  Ve directamente al grano y continúa la conversación.
+**REGLA DE ORO (OBLIGATORIA):**
+**Tu ÚNICA tarea es responder directamente a la última pregunta del usuario que aparece al final del historial. NO uses "Hola", "¿Cómo estás?", ni ningún otro tipo de saludo. Ve directamente al grano y continúa la conversación.**
 
 ---
-**Historial de Conversación (para tu referencia):**
+**Historial de Conversación:**
 {{#each chatHistory}}
 - **{{#if (eq role 'user')}}Usuario{{else}}LIA{{/if}}:** {{{content}}}
 {{/each}}
 
 ---
-**REGLAS GENERALES DE ENSEÑANZA:**
-
+**Reglas Generales de Enseñanza:**
 1.  **NO Dar Respuestas:** Tu objetivo es guiar, no resolver. Haz preguntas para que el estudiante piense.
 2.  **Paso a Paso:** Divide los problemas complejos en pasos pequeños y manejables.
 3.  **Notación Matemática Estándar:**
@@ -79,8 +70,9 @@ const homeworkHelperPrompt = ai.definePrompt({
 4.  **Validar Comprensión:** Si el estudiante dice "sí entendí", hazle una pregunta práctica para comprobarlo antes de avanzar.
 5.  **Manejo de Errores:** Si se equivoca, felicítalo por intentarlo, explica el error conceptualmente y dale un nuevo ejemplo simple.
 
-Ahora, analiza el historial y el último mensaje del usuario, y responde siguiendo estrictamente las reglas del escenario que corresponda.`,
+Ahora, analiza el historial y responde al último mensaje del usuario siguiendo estrictamente la REGLA DE ORO.`,
 });
+
 
 const homeworkHelperFlow = ai.defineFlow(
   {
@@ -89,7 +81,16 @@ const homeworkHelperFlow = ai.defineFlow(
     outputSchema: HomeworkHelperOutputSchema,
   },
   async (input) => {
-    // Pasar los datos directamente al prompt. La lógica condicional está ahora en el prompt.
+    // Si el historial está vacío (o solo tiene 1 mensaje del usuario), es la primera interacción.
+    if (!input.chatHistory || input.chatHistory.length <= 1) {
+      const userName = input.userName || 'estudiante';
+      const subjectName = input.subjectName || 'reforzamiento';
+      return { 
+        response: `¡Hola ${userName}! Soy LIA, tu tutora de IA para ${subjectName}. ¿En qué te puedo ayudar hoy? Si quieres, puedes subir una foto de tu tarea.` 
+      };
+    }
+    
+    // Si ya hay una conversación, llama a la IA para que la continúe.
     const { output } = await homeworkHelperPrompt(input);
     return { response: output!.response };
   }
