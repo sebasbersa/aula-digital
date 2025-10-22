@@ -61,14 +61,13 @@ function SignupFormContent() {
 
       await updateProfile(user, { displayName: `${values.firstName} ${values.lastName}` });
 
-// await addMember(user.uid, {
-//   name: values.firstName,
-//   lastName: values.lastName,
-//   email: values.email,
-//   role: 'owner',
-//   avatarUrl: generateAvatarUrl(values.firstName),
-// }, true);
-
+      // await addMember(user.uid, {
+      //   name: values.firstName,
+      //   lastName: values.lastName,
+      //   email: values.email,
+      //   role: 'owner',
+      //   avatarUrl: generateAvatarUrl(values.firstName),
+      // }, true);
 
       await sendEmailVerification(user);
 

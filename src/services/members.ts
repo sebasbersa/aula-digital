@@ -1,8 +1,7 @@
 
-'use client';
 import { db, auth } from '@/lib/firebase';
 import type { Member, Role } from '@/lib/types';
-import { collection, addDoc, getDocs, query, where, doc, setDoc, deleteDoc, DocumentData, updateDoc, getDoc, arrayUnion, arrayRemove, serverTimestamp, writeBatch, Timestamp } from 'firebase/firestore';
+import { DocumentSnapshot, collection, addDoc, getDocs, query, where, doc, setDoc, deleteDoc, DocumentData, updateDoc, getDoc, arrayUnion, arrayRemove, serverTimestamp, writeBatch, Timestamp } from 'firebase/firestore';
 import { getPracticeGuides } from './practiceGuides';
 
 // Helper function to convert Firestore data to a Member object
@@ -13,34 +12,41 @@ const convertFirestoreDataToMember = (doc: DocumentData, docId: string): Member 
     const subscriptionPeriodEndsAt = data.subscriptionPeriodEndsAt && typeof (data.subscriptionPeriodEndsAt as any).toDate === 'function' ? (data.subscriptionPeriodEndsAt as any).toDate() : null;
     const trialEndsAt = data.trialEndsAt && typeof (data.trialEndsAt as any).toDate === 'function' ? (data.trialEndsAt as any).toDate() : null;
     const createdAt = data.createdAt && typeof (data.createdAt as any).toDate === 'function' ? (data.createdAt as any).toDate() : new Date();
-
     return {
         id: docId,
-        uid: data.uid || '',
+        uid: data.uid,
         ownerId: data.ownerId,
-        tenantId: data.tenantId || '',
+        tenantId: data.tenantId,
         name: data.name,
         lastName: data.lastName,
-        email: data.email || '',
-        rut: data.rut,
+        email: data.email,
         role: data.role,
         avatarUrl: data.avatarUrl,
         age: data.age,
-        grade: data.grade,
         learningObjective: data.learningObjective,
-        score: data.score || 0,
+        score: data.score,
         friendCode: data.friendCode,
-        friends: data.friends || [],
-        isOwnerProfile: data.isOwnerProfile || false,
+        friends: data.friends,
+        isOwnerProfile: data.isOwnerProfile,
+        rut: data.rut,
+        grade: data.grade,
         englishLevelId: data.englishLevelId,
+
+        // --- LA CORRECCIÓN CLAVE ESTÁ AQUÍ ---
+        // Incluimos el objeto 'flowSuscription'. Si no existe en la base de datos, 
+        // se asignará 'null' para evitar errores.
+        flowSuscription: data.flowSuscription || null,
+
+        // Se convierten los Timestamps de Firestore a objetos Date de JavaScript.
+        // Esto es crucial para que funciones como 'format()' no fallen.
         createdAt: createdAt,
-        subscriptionId: data.subscriptionId,
-        customerId: data.customerId,
-        subscriptionPlan: data.subscriptionPlan,
-        subscriptionStatus: data.subscriptionStatus,
         subscriptionStartedAt: subscriptionStartedAt,
         subscriptionPeriodEndsAt: subscriptionPeriodEndsAt,
         trialEndsAt: trialEndsAt,
+
+        // El resto de los campos relacionados con la suscripción
+        subscriptionPlan: data.subscriptionPlan || null,
+        subscriptionStatus: data.subscriptionStatus || null,
     };
 };
 
@@ -49,11 +55,11 @@ const generateFriendCode = async (name: string): Promise<string> => {
     const sanitizedName = name.split(' ')[0].replace(/[^a-zA-Z0-9]/g, '');
     let friendCode = '';
     let isUnique = false;
-    
+
     while (!isUnique) {
         const randomDigits = Math.floor(1000 + Math.random() * 9000);
         friendCode = `${sanitizedName}#${randomDigits}`;
-        
+
         const q = query(collection(db, 'members'), where('friendCode', '==', friendCode));
         const querySnapshot = await getDocs(q);
         if (querySnapshot.empty) {
@@ -151,43 +157,29 @@ export async function addMember(ownerId: string, memberData: Partial<Member>, is
             createdAt: serverTimestamp(),
             // Only add these fields for the owner profile
             ...(isOwnerProfile && {
-                uid: ownerId, // The auth ID
+                uid: ownerId,
                 email: currentUser!.email,
                 subscriptionStatus: 'trial',
                 trialEndsAt: Timestamp.fromDate(trialEndDate),
             })
         };
-        
+
         if (memberData.age) newMemberPayload.age = memberData.age;
         if (memberData.grade) newMemberPayload.grade = memberData.grade;
         if (memberData.learningObjective) newMemberPayload.learningObjective = memberData.learningObjective;
-        
+
         if (memberData.role === 'student' || memberData.role === 'adult_learner') {
             newMemberPayload.friendCode = await generateFriendCode(memberData.name!);
         }
 
         const docRef = await addDoc(collection(db, 'members'), newMemberPayload);
-        
+
         const finalPayload = {
             id: docRef.id,
             ...newMemberPayload,
             createdAt: new Date(),
         };
 
-// if (isOwnerProfile) {
-//   const guardianProfilePayload = {
-//     ownerId: ownerId,
-//     name: memberData.name,
-//     lastName: memberData.lastName || '',
-//     role: 'guardian' as Role,
-//     avatarUrl: memberData.avatarUrl,
-//     isOwnerProfile: false,
-//     createdAt: serverTimestamp(),
-//   };
-//   await addDoc(collection(db, 'members'), guardianProfilePayload);
-// }
-
-        
         return finalPayload;
 
     } catch (error) {
@@ -197,10 +189,16 @@ export async function addMember(ownerId: string, memberData: Partial<Member>, is
 }
 
 
-export async function updateMember(memberId: string, memberData: Partial<Pick<Member, 'name' | 'avatarUrl' | 'grade' | 'friendCode' | 'englishLevelId' | 'email'>>): Promise<void> {
+export async function updateMember(memberId: string, memberData: Partial<Pick<Member, 'name' | 'avatarUrl' | 'grade' | 'friendCode' | 'englishLevelId' | 'email' | 'flowSuscription'>>): Promise<Member> {
     try {
         const memberRef = doc(db, 'members', memberId);
         await updateDoc(memberRef, memberData);
+        const updatedDocSnap: DocumentSnapshot = await getDoc(memberRef);
+        if (!updatedDocSnap.exists()) {
+            // Este es un caso muy improbable si la actualización tuvo éxito, pero es bueno manejarlo
+            throw new Error("Member not found after update.");
+        }
+        return { id: updatedDocSnap.id, ...updatedDocSnap.data() } as Member;
     } catch (error) {
         console.error("Error updating member: ", error);
         throw new Error("Could not update member profile.");
@@ -232,7 +230,7 @@ export async function recalculateMemberScore(memberId: string): Promise<number> 
 
     try {
         const guides = await getPracticeGuides(memberId);
-        
+
         const bestRankingPointsByGuide = guides.reduce((acc, guide) => {
             // Definitive normalization logic
             const normalizedTitle = guide.title
@@ -250,12 +248,12 @@ export async function recalculateMemberScore(memberId: string): Promise<number> 
         }, {} as Record<string, number>);
 
         const totalScore = Object.values(bestRankingPointsByGuide).reduce((sum, points) => sum + points, 0);
-        
+
         const memberRef = doc(db, 'members', memberId);
         await updateDoc(memberRef, {
             score: totalScore
         });
-        
+
         return totalScore;
 
     } catch (error) {
@@ -311,6 +309,6 @@ export async function removeFriend(currentMemberId: string, friendMemberId: stri
 
     batch.update(currentUserRef, { friends: arrayRemove(friendMemberId) });
     batch.update(friendRef, { friends: arrayRemove(currentMemberId) });
-    
+
     await batch.commit();
 }

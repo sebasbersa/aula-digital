@@ -74,7 +74,7 @@ export type MicroClass = {
 };
 
 export type Report = {
-  id:string;
+  id: string;
   userName: string;
   avatarUrl: string;
   summary: string;
@@ -95,6 +95,15 @@ export type Plan = {
 };
 
 export type SubscriptionStatus = 'active' | 'trial' | 'inactive' | 'past_due' | 'canceled';
+
+export type FlowSuscription = {
+  customerId: string;
+  subscriptionId: string;
+  planName: 'Plan Mensual' | 'Plan Semestral' | 'Plan Anual';
+  createdAt: string;
+  subscriptionStartedAt?: string | null;
+  lastPaymentStatus: boolean;
+}
 
 export type Member = {
   id: string;
@@ -117,9 +126,7 @@ export type Member = {
   isOwnerProfile?: boolean;
   englishLevelId?: string | null;
   createdAt: Date;
-  // Subscription fields, primarily for the owner profile
-  subscriptionId?: string;
-  customerId?: string;
+  flowSuscription?: FlowSuscription | null;
   subscriptionPlan?: 'Plan Mensual' | 'Plan Semestral' | 'Plan Anual' | null;
   subscriptionStatus?: SubscriptionStatus | null;
   subscriptionStartedAt?: Date | null;
@@ -134,7 +141,7 @@ export type ChatMessage = {
 
 export type TestData = {
   subjectId: string;
-  date: Date; 
+  date: Date;
   topics: string;
 }
 
@@ -155,33 +162,33 @@ export type Grade = GradeData & {
 };
 
 export type PracticeGuideResultData = {
-    subjectId: string;
-    title: string;
-    score: number;
-    feedback: string;
-    correction: CorrectedQuestion[];
-    correctAnswersCount: number;
-    totalQuestionsCount: number;
-    rankingPoints: number;
+  subjectId: string;
+  title: string;
+  score: number;
+  feedback: string;
+  correction: CorrectedQuestion[];
+  correctAnswersCount: number;
+  totalQuestionsCount: number;
+  rankingPoints: number;
 };
 
 export type PracticeGuideResult = PracticeGuideResultData & {
-    id: string;
-    memberId: string;
-    createdAt: Date;
+  id: string;
+  memberId: string;
+  createdAt: Date;
 };
 
 export type RecipeData = {
-    title: string;
-    description: string;
-    time: string;
-    servings: string;
-    difficulty: 'Fácil' | 'Intermedio' | 'Difícil';
-    calories: string;
-    ingredients: string[];
-    steps: string[];
-    tip?: string;
-    category: 'Desayunos' | 'Almuerzos' | 'Cenas' | 'Snacks';
+  title: string;
+  description: string;
+  time: string;
+  servings: string;
+  difficulty: 'Fácil' | 'Intermedio' | 'Difícil';
+  calories: string;
+  ingredients: string[];
+  steps: string[];
+  tip?: string;
+  category: 'Desayunos' | 'Almuerzos' | 'Cenas' | 'Snacks';
 };
 
 export type Recipe = RecipeData & {
