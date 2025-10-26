@@ -21,7 +21,7 @@ export default async function SubscriptionResultPage({
             está activa.
           </p>
           <Link
-            href="/dashboard"
+            href="/adult_learner/dashboard"
             className="mt-6 inline-block bg-primary text-primary-foreground px-6 py-2 rounded"
           >
             Ir a mi cuenta

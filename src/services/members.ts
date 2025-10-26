@@ -8,8 +8,6 @@ import { getPracticeGuides } from './practiceGuides';
 const convertFirestoreDataToMember = (doc: DocumentData, docId: string): Member => {
     const data = doc as Omit<Member, 'id'>;
     // Convert Firestore Timestamps to JS Dates if they exist
-    const subscriptionStartedAt = data.subscriptionStartedAt && typeof (data.subscriptionStartedAt as any).toDate === 'function' ? (data.subscriptionStartedAt as any).toDate() : null;
-    const subscriptionPeriodEndsAt = data.subscriptionPeriodEndsAt && typeof (data.subscriptionPeriodEndsAt as any).toDate === 'function' ? (data.subscriptionPeriodEndsAt as any).toDate() : null;
     const trialEndsAt = data.trialEndsAt && typeof (data.trialEndsAt as any).toDate === 'function' ? (data.trialEndsAt as any).toDate() : null;
     const createdAt = data.createdAt && typeof (data.createdAt as any).toDate === 'function' ? (data.createdAt as any).toDate() : new Date();
     return {
@@ -40,12 +38,9 @@ const convertFirestoreDataToMember = (doc: DocumentData, docId: string): Member 
         // Se convierten los Timestamps de Firestore a objetos Date de JavaScript.
         // Esto es crucial para que funciones como 'format()' no fallen.
         createdAt: createdAt,
-        subscriptionStartedAt: subscriptionStartedAt,
-        subscriptionPeriodEndsAt: subscriptionPeriodEndsAt,
         trialEndsAt: trialEndsAt,
 
         // El resto de los campos relacionados con la suscripción
-        subscriptionPlan: data.subscriptionPlan || null,
         subscriptionStatus: data.subscriptionStatus || null,
     };
 };

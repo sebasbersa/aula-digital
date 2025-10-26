@@ -35,10 +35,12 @@ export async function createFlowSuscription(member: Member, order: PaymentOrder)
       throw new Error(crearClienteResponse.message);
     }
     // PASO 2: GUARDAR FLOW DATA EN MEMBER
+    console.log(order)
     const flowData: FlowSuscription = {
       customerId: crearClienteResponse.customerId,
       createdAt: new Date().toISOString(),
       lastPaymentStatus: false,
+      activatedAt: "",
       planName: order.planName,
       subscriptionId: ''
     }

@@ -1329,11 +1329,12 @@ export const plans: Plan[] = [
       "Reportes para padres",
       "Cancelar en cualquier momento",
     ],
+    type: "mensual"
   },
   {
     name: "Plan Anual",
     price: "$10.825",
-    period: "/mes",
+    period: "/año",
     discount: "2 meses gratis",
     equivalentPrice: "Paga $129.900 al año",
     features: [
@@ -1344,11 +1345,12 @@ export const plans: Plan[] = [
     ],
     savings: "Ahorra 2 meses completos",
     isRecommended: true,
+    type: "anual"
   },
   {
     name: "Plan Semestral",
     price: "$11.665",
-    period: "/mes",
+    period: "/semestre",
     discount: "10% OFF",
     equivalentPrice: "Paga $69.990 al semestre",
     features: [
@@ -1358,6 +1360,7 @@ export const plans: Plan[] = [
         "Reportes para padres",
     ],
     savings: "Ahorra 10%",
+    type: "semestral"
   },
 ];
 
