@@ -84,9 +84,13 @@ export function SubjectCard({ subject, role, savedSessionsCount = 0 }: SubjectCa
           <CardTitle className="font-headline text-xl">{subject.title}</CardTitle>
           {(role === 'student' || role === 'adult_learner') && (
             <Badge variant="secondary" className="mt-2">
-              <BrainCircuit className="w-3 h-3 mr-1.5" />
-              {savedSessionsCount} {savedSessionsCount === 1 ? 'lección' : 'lecciones'}
-            </Badge>
+            <BrainCircuit className="w-3 h-3 mr-1.5" />
+            {savedSessionsCount} {
+              (subject.id === 'cocina' || subject.id === 'cocktails-mocktails')
+                ? (savedSessionsCount === 1 ? 'receta' : 'recetas')
+                : (savedSessionsCount === 1 ? 'lección' : 'lecciones')
+            }
+          </Badge>
           )}
         </CardContent>
       </Card>

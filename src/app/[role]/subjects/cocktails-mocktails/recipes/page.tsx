@@ -17,7 +17,7 @@ import { askRecipeQuestion } from '@/ai/flows/ask-recipe-question';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { addRecipe, getRecipes, deleteRecipe } from '@/services/recipes';
+import { addRecipeWithSubject, getRecipes, deleteRecipe } from '@/services/recipes';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -287,17 +287,33 @@ export default function RecipesPage() {
 
   const handleSaveRecipe = async () => {
     if (!generatedRecipe || !currentProfile) return;
-
+  
     try {
-        const newRecipe = await addRecipe(currentProfile.ownerId, currentProfile.id, generatedRecipe);
-        setSavedRecipes(prev => [...prev, newRecipe]);
-        toast({ title: '¡Receta Guardada!', description: `"${generatedRecipe.title}" se ha añadido a Mis Recetas.` });
+      // ✅ Usamos el ID real de la materia en tu app: "cocktails-mocktails"
+      console.log("Saving recipe with subjectId:", "cocktails-mocktails");
+  
+      const newRecipe = await addRecipeWithSubject(
+        currentProfile.ownerId,
+        currentProfile.id,
+        generatedRecipe,
+        'cocktails-mocktails' // ✅ ID real del subject
+      );
+  
+      setSavedRecipes(prev => [...prev, newRecipe]);
+      toast({
+        title: '¡Receta Guardada!',
+        description: `"${generatedRecipe.title}" se ha añadido a Mis Recetas.`,
+      });
     } catch (error) {
-        console.error("Could not save recipe to Firestore", error);
-        toast({ title: 'Error', description: 'No se pudo guardar la receta en la base de datos.', variant: 'destructive' });
+      console.error("Could not save recipe to Firestore", error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo guardar la receta en la base de datos.',
+        variant: 'destructive',
+      });
     }
   };
-
+  
   const handleDeleteRecipe = async (recipeToDelete: Recipe) => {
     if (!recipeToDelete.id) return;
     try {

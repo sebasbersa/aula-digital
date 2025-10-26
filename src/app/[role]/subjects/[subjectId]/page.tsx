@@ -55,19 +55,19 @@ const iconMap: { [key: string]: React.FC<LucideProps> } = {
 };
 
 function SubjectDetailSkeleton() {
-    return (
-        <div className="container mx-auto py-8 space-y-8">
-            <Skeleton className="h-6 w-48" />
-            <div className="text-center space-y-4">
-                <Skeleton className="h-12 w-12 rounded-full mx-auto" />
-                <Skeleton className="h-10 w-1/2 mx-auto" />
-                <Skeleton className="h-5 w-3/4 mx-auto" />
-            </div>
-            <div className="max-w-4xl mx-auto">
-                <Skeleton className="h-[70vh] w-full" />
-            </div>
-        </div>
-    )
+  return (
+      <div className="container mx-auto py-8 space-y-8">
+          <Skeleton className="h-6 w-48" />
+          <div className="text-center space-y-4">
+              <Skeleton className="h-12 w-12 rounded-full mx-auto" />
+              <Skeleton className="h-10 w-1/2 mx-auto" />
+              <Skeleton className="h-5 w-3/4 mx-auto" />
+          </div>
+          <div className="max-w-4xl mx-auto">
+              <Skeleton className="h-[70vh] w-full" />
+          </div>
+      </div>
+  )
 }
 
 function SubjectDetailContent() {

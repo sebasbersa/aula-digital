@@ -7,6 +7,7 @@ import { SubjectCard } from '@/components/subject-card';
 import type { Role, Subject, Member } from '@/lib/types';
 import { getSubjects, getAdultSubjects } from '@/services/subjects';
 import { getTutoringSessions, type TutoringSession } from '@/services/tutoringSessions';
+import { getRecipes } from '@/services/recipes';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SubjectsPage() {
@@ -14,6 +15,7 @@ export default function SubjectsPage() {
   const role = params.role as Role;
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [sessions, setSessions] = useState<TutoringSession[]>([]);
+  const [recipes, setRecipes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentProfile, setCurrentProfile] = useState<Member | null>(null);
 
@@ -23,32 +25,42 @@ export default function SubjectsPage() {
       if (profileString) {
         const profile = JSON.parse(profileString) as Member;
         setCurrentProfile(profile);
-        
+
         let subjectsData: Subject[] = [];
         let sessionsData: TutoringSession[] = [];
+        let recipesData: any[] = [];
 
         if (profile.role === 'adult_learner') {
-          [subjectsData, sessionsData] = await Promise.all([
+          [subjectsData, sessionsData, recipesData] = await Promise.all([
             getAdultSubjects(),
-            getTutoringSessions(profile.id) // Assuming adults can have sessions
+            getTutoringSessions(profile.id),
+            getRecipes(profile.id)
           ]);
         } else {
-          [subjectsData, sessionsData] = await Promise.all([
+          [subjectsData, sessionsData, recipesData] = await Promise.all([
             getSubjects(profile.grade),
-            getTutoringSessions(profile.id)
+            getTutoringSessions(profile.id),
+            getRecipes(profile.id)
           ]);
         }
-        
+
         setSubjects(subjectsData);
         setSessions(sessionsData);
+        setRecipes(recipesData);
       }
       setLoading(false);
     }
     loadData();
   }, [role]);
 
+  // ✅ CORREGIDO: cada materia solo cuenta sus propias recetas
   const getSessionCountForSubject = (subjectId: string) => {
-    return sessions.filter(session => session.subjectId === subjectId).length;
+    const sessionCount = sessions.filter(session => session.subjectId === subjectId).length;
+
+    // Contar SOLO las recetas del subject actual
+    const recipeCount = recipes.filter(recipe => recipe.subjectId === subjectId).length;
+
+    return sessionCount + recipeCount;
   };
 
   return (
@@ -91,14 +103,14 @@ export default function SubjectsPage() {
 function CardSkeleton() {
   return (
     <div className="p-6 border rounded-lg space-y-4">
-        <div className="flex justify-between items-start">
-            <Skeleton className="h-14 w-14 rounded-full" />
-            <Skeleton className="h-5 w-5" />
-        </div>
-        <div className="space-y-2">
-            <Skeleton className="h-6 w-3/4" />
-            <Skeleton className="h-5 w-1/2" />
-        </div>
+      <div className="flex justify-between items-start">
+        <Skeleton className="h-14 w-14 rounded-full" />
+        <Skeleton className="h-5 w-5" />
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-5 w-1/2" />
+      </div>
     </div>
-  )
+  );
 }

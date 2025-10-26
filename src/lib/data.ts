@@ -30,7 +30,7 @@ export const generateAvatarUrl = (
 
 export const studentGrades = [
     '1ro Básico', '2do Básico', '3ro Básico', '4to Básico', '5to Básico', '6to Básico', '7mo Básico', '8vo Básico',
-    '1ro Medio', '2do Medio', '3ro Medio', '4to Medio', 'Reforzamiento PAES'
+    '1ro Medio', '2do Medio', '3ro Medio', '4to Medio'
 ];
 
 export const grades = {

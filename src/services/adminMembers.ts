@@ -1,10 +1,10 @@
 'use server';
 
-import { adminDb } from '@/lib/firebase-admin'; // ¡Importante! Usar la instancia de admin
+import * as firebaseAdmin from '@/lib/firebase-admin'; // ¡Importante! Usar la instancia de admin
 import { Member } from '@/lib/types';
 export async function findMemberByUidAsAdmin(uid: string): Promise<{ id: string; data: Member } | null> {
     try {
-        const membersRef = adminDb.collection('members');
+        const membersRef = firebaseAdmin.adminDb.collection('members');
         // Crea una consulta para buscar donde el campo 'uid' coincida
         const q = membersRef.where('uid', '==', uid).limit(1);
         const querySnapshot = await q.get();
@@ -27,7 +27,7 @@ export async function findMemberByUidAsAdmin(uid: string): Promise<{ id: string;
 }
 export async function findMemberByFlowCustomerId(customerId: string): Promise<Member | null> {
     try {
-        const membersRef = adminDb.collection('members');
+        const membersRef = firebaseAdmin.adminDb.collection('members');
         // Crea una consulta para buscar donde el campo 'uid' coincida
         const q = membersRef.where('flowSuscription.customerId', '==', customerId).limit(1);
         const querySnapshot = await q.get();
@@ -53,7 +53,7 @@ export async function findMemberByFlowCustomerId(customerId: string): Promise<Me
  */
 export async function updateMemberAsAdmin(memberDocId: string, memberData: Partial<Member>): Promise<void> {
     try {
-        const memberRef = adminDb.collection('members').doc(memberDocId);
+        const memberRef = firebaseAdmin.adminDb.collection('members').doc(memberDocId);
         await memberRef.update(memberData);
     } catch (error) {
         console.error("Error updating member from server: ", error);
@@ -62,7 +62,7 @@ export async function updateMemberAsAdmin(memberDocId: string, memberData: Parti
 }
 export async function updateMemberByUidAsAdmin(memberUid: string, memberData: Partial<Member>): Promise<void> {
     try {
-        const membersCollection = adminDb.collection('members');
+        const membersCollection = firebaseAdmin.adminDb.collection('members');
         const query = membersCollection.where('uid', '==', memberUid);
 
         const querySnapshot = await query.get();
@@ -90,7 +90,7 @@ export async function updateMemberByUidAsAdmin(memberUid: string, memberData: Pa
  */
 export async function getAuthMember() {
     try {
-        const memberRef = adminDb.collection('members');
+        const memberRef = firebaseAdmin.adminDb.collection('members');
 
 
     } catch (error) {
