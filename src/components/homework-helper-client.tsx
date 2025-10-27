@@ -456,8 +456,7 @@ export function HomeworkHelperClient({ subject, initialPrompt, initialChatHistor
                           value={userMessage}
                           onChange={(e) => setUserMessage(e.target.value)}
                           placeholder={placeholderText}
-                          className="flex-grow"
-                          rows={1}
+                          className="flex-grow min-h-[60px]"
                           onKeyDown={(e) => {
                               if (e.key === 'Enter' && !e.shiftKey) {
                                   e.preventDefault();
