@@ -28,7 +28,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 function LayoutSkeleton() {
     return (
         <SidebarProvider>
-            <Sidebar>
+            <Sidebar collapsible>
                 <SidebarHeader className="p-4">
                     <div className="flex items-center gap-2">
                          <div className="relative w-32 h-10">
@@ -122,12 +122,13 @@ export default function OwnerLayout({
     <FamilyProvider value={{ members, setMembers, currentUser, loading }}>
         <SidebarProvider>
             <Sheet>
-                <Sidebar>
+                <Sidebar collapsible>
                     <SheetContent side="left" className="md:hidden p-0">
                         <SidebarHeader className="p-4 flex justify-center border-b">
                             <Link href="/select-profile" className="relative h-auto w-52">
                             <AppLogo />
                             </Link>
+                            <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
                         </SidebarHeader>
                         <SidebarContent>
                             <div className="p-2">
