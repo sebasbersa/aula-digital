@@ -22,7 +22,7 @@ import { auth } from '@/lib/firebase';
 import { getMembers, updateMember } from '@/services/members';
 import { FamilyProvider } from '@/contexts/family-context';
 import Link from 'next/link';
-import { SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 
 function LayoutSkeleton() {
@@ -121,52 +121,51 @@ export default function OwnerLayout({
   return (
     <FamilyProvider value={{ members, setMembers, currentUser, loading }}>
         <SidebarProvider>
-        <Sidebar>
-            <SheetContent side="left" className="md:hidden">
-              <SheetHeader>
-                  <SheetTitle className="sr-only">Menú Principal</SheetTitle>
-              </SheetHeader>
-              <SidebarHeader className="p-4 flex justify-center">
-                <Link href="/select-profile" className="relative h-auto w-52">
-                  <AppLogo />
-                </Link>
-              </SidebarHeader>
-              <SidebarContent>
-                <div className="p-2">
-                    <SideNav role={activeUser.role} ownerProfile={ownerProfile} />
-                </div>
-              </SidebarContent>
-              <SidebarFooter className="p-4 border-t">
-                <div className="flex items-center">
-                  <p className="font-semibold">Gestión de perfiles</p>
-                </div>
-              </SidebarFooter>
-            </SheetContent>
+            <Sheet>
+                <Sidebar>
+                    <SheetContent side="left" className="md:hidden p-0">
+                        <SidebarHeader className="p-4 flex justify-center border-b">
+                            <Link href="/select-profile" className="relative h-auto w-52">
+                            <AppLogo />
+                            </Link>
+                        </SidebarHeader>
+                        <SidebarContent>
+                            <div className="p-2">
+                                <SideNav role={activeUser.role} ownerProfile={ownerProfile} />
+                            </div>
+                        </SidebarContent>
+                        <SidebarFooter className="p-4 border-t absolute bottom-0 w-full">
+                            <div className="flex items-center">
+                            <p className="font-semibold">Gestión de perfiles</p>
+                            </div>
+                        </SidebarFooter>
+                    </SheetContent>
 
-            <div className="hidden md:flex md:flex-col h-full">
-              <SidebarHeader className="p-4 flex justify-center">
-                <Link href="/select-profile" className="relative h-auto w-52">
-                  <AppLogo />
-                </Link>
-              </SidebarHeader>
-              <SidebarContent>
-              <div className="p-2">
-                  <SideNav role={activeUser.role} ownerProfile={ownerProfile} />
-              </div>
-              </SidebarContent>
-              <SidebarFooter className="p-4 border-t">
-                <div className="flex items-center">
-                  <p className="font-semibold">Gestión de perfiles</p>
-                </div>
-              </SidebarFooter>
-            </div>
-        </Sidebar>
-        <SidebarInset>
-            <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-                <SidebarTrigger className="md:hidden" />
-            </header>
-            <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
-        </SidebarInset>
+                    <div className="hidden md:flex md:flex-col h-full">
+                    <SidebarHeader className="p-4 flex justify-center">
+                        <Link href="/select-profile" className="relative h-auto w-52">
+                        <AppLogo />
+                        </Link>
+                    </SidebarHeader>
+                    <SidebarContent>
+                    <div className="p-2">
+                        <SideNav role={activeUser.role} ownerProfile={ownerProfile} />
+                    </div>
+                    </SidebarContent>
+                    <SidebarFooter className="p-4 border-t">
+                        <div className="flex items-center">
+                        <p className="font-semibold">Gestión de perfiles</p>
+                        </div>
+                    </SidebarFooter>
+                    </div>
+                </Sidebar>
+                <SidebarInset>
+                    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+                        <SidebarTrigger className="md:hidden" />
+                    </header>
+                    <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
+                </SidebarInset>
+            </Sheet>
         </SidebarProvider>
     </FamilyProvider>
   );
