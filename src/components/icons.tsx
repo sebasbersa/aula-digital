@@ -15,6 +15,22 @@ export function AppLogo(props: SVGProps<SVGSVGElement> & { priority?: boolean })
   );
 }
 
+export function FaviconIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg 
+        width="24" 
+        height="24" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        xmlns="http://www.w3.org/2000/svg"
+        {...props}
+    >
+        <rect width="24" height="24" rx="4" fill="#3030d1"/>
+        <path d="M6.716 18L10.16 7.632H11.588L14.996 18H13.568L12.74 15.348H8.984L8.156 18H6.716ZM10.88 9.384L9.368 14.1H12.356L10.88 9.384Z" fill="white"/>
+    </svg>
+  );
+}
+
 
 export function WhatsAppIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -106,6 +122,3 @@ export function FacebookIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-    
-
-    
