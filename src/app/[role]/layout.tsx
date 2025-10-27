@@ -9,7 +9,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarInset,
-  SidebarTrigger,
 } from "../../components/ui/sidebar";
 import { AppLogo, FaviconIcon } from "../../components/icons";
 import {
@@ -28,6 +27,8 @@ import { FamilyProvider, useFamily } from "../../contexts/family-context";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useSidebar } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 
 function LayoutSkeleton() {
   return (
@@ -71,6 +72,17 @@ const roleDisplayNames: Record<Role, string> = {
   owner: "Propietario",
   content_admin: "Admin",
 };
+
+// Componente separado para el botón para poder usar el hook `useSidebar`
+function MobileSidebarTrigger() {
+    const { toggleSidebar } = useSidebar();
+    return (
+        <Button variant="ghost" className="md:hidden flex items-center gap-2 p-1 h-auto" onClick={toggleSidebar}>
+            <FaviconIcon className="w-8 h-8 shrink-0" />
+            <span className="text-sm text-muted-foreground font-medium">Menú</span>
+        </Button>
+    );
+}
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const params = useParams();
@@ -268,10 +280,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
           <SidebarInset>
             <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-              <SidebarTrigger className="md:hidden flex items-center gap-2 p-1">
-                  <FaviconIcon className="w-8 h-8 shrink-0" />
-                  <span className="text-sm text-muted-foreground font-medium">Menú</span>
-              </SidebarTrigger>
+              <MobileSidebarTrigger />
             </header>
             <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
           </SidebarInset>
