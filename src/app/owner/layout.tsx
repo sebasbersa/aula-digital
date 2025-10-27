@@ -9,6 +9,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarInset,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { AppLogo } from '@/components/icons';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -25,7 +26,7 @@ import Link from 'next/link';
 function LayoutSkeleton() {
     return (
         <SidebarProvider>
-            <Sidebar collapsible="none">
+            <Sidebar collapsible="icon">
                 <SidebarHeader className="p-4">
                     <div className="flex items-center gap-2">
                          <div className="relative w-32 h-10">
@@ -118,7 +119,7 @@ export default function OwnerLayout({
   return (
     <FamilyProvider value={{ members, setMembers, currentUser, loading }}>
         <SidebarProvider>
-        <Sidebar collapsible="none">
+        <Sidebar collapsible="icon">
             <SidebarHeader className="p-4 flex justify-center">
               <Link href="/select-profile" className="relative h-auto w-52">
                 <AppLogo />
@@ -136,6 +137,9 @@ export default function OwnerLayout({
             </SidebarFooter>
         </Sidebar>
         <SidebarInset>
+            <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+                <SidebarTrigger className="md:hidden" />
+            </header>
             <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
         </SidebarInset>
         </SidebarProvider>
