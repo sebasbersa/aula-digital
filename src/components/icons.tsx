@@ -1,4 +1,3 @@
-
 import type { SVGProps } from 'react';
 import Image from 'next/image';
 
@@ -21,8 +20,8 @@ export function FaviconIcon(props: SVGProps<SVGSVGElement>) {
     <Image
       src="/favicon.ico"
       alt="Favicon"
-      width={30}
-      height={30}
+      width={40}
+      height={40}
       className={props.className?.toString()}
     />
   );
