@@ -21,8 +21,8 @@ export function FaviconIcon(props: SVGProps<SVGSVGElement>) {
     <Image
       src="/favicon.ico"
       alt="Favicon"
-      width={24}
-      height={24}
+      width={30}
+      height={30}
       className={props.className?.toString()}
     />
   );
