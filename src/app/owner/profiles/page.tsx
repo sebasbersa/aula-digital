@@ -92,8 +92,8 @@ export default function ProfilesPage() {
   const handleUpdateMember = async (updatedData: { name: string; avatarUrl: string; grade?: string; }) => {
     if (!editingMember) return;
     try {
-        await updateMember(editingMember.id, updatedData);
-        setMembers(prev => prev.map(m => m.id === editingMember.id ? { ...m, ...updatedData } : m));
+        await updateMember(editingMember.uid, updatedData);
+        setMembers(prev => prev.map(m => m.uid === editingMember.uid ? { ...m, ...updatedData } : m));
         toast({
             title: 'Perfil Actualizado',
             description: 'Los cambios se han guardado correctamente.',
@@ -116,7 +116,7 @@ export default function ProfilesPage() {
     }
     try {
         await deleteMember(id);
-        setMembers((prevMembers) => prevMembers.filter((member) => member.id !== id));
+        setMembers((prevMembers) => prevMembers.filter((member) => member.uid !== id));
         toast({
             title: 'Perfil Eliminado',
             description: 'El perfil ha sido eliminado correctamente.',
@@ -185,7 +185,7 @@ export default function ProfilesPage() {
                       ))
                     ) : members.length > 0 ? (
                       members.map((member) => (
-                        <TableRow key={member.id}>
+                        <TableRow key={member.uid}>
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-3">
                               <Avatar>
@@ -200,9 +200,7 @@ export default function ProfilesPage() {
                               {roleDisplayNames[member.role] || member.role}
                               {member.isOwnerProfile && ' (Admin)'}
                             </Badge>
-                             {member.role === 'student' && member.grade && (
-                                <p className="text-xs text-muted-foreground mt-1">{member.grade}</p>
-                            )}
+                             
                           </TableCell>
                           <TableCell>
                             <DropdownMenu>
@@ -218,7 +216,7 @@ export default function ProfilesPage() {
                                 {!member.isOwnerProfile && (
                                 <DropdownMenuItem
                                   className="text-destructive"
-                                  onClick={() => handleDeleteMember(member.id)}
+                                  onClick={() => handleDeleteMember(member.uid)}
                                 >
                                   Eliminar
                                 </DropdownMenuItem>
