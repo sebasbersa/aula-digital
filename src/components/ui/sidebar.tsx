@@ -67,7 +67,7 @@ const SidebarProvider = React.forwardRef<
     },
     ref
   ) => {
-    const isMobile = useIsMobile()
+    const isMobile = useIsMobile();
     const [openMobile, setOpenMobile] = React.useState(false)
 
     // Este es el estado interno de la barra lateral.
@@ -175,8 +175,12 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
-
+    const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+    console.log('Sidebar Component Render:', { isMobile, state, open }); // <--- AÑADE ESTE LOG
+    if (isMobile === undefined) {
+      console.log('Returning null because isMobile is undefined');
+      return null; // O puedes renderizar un <SidebarMenuSkeleton /> si lo prefieres
+    }
     if (isMobile) {
       return (
         <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
@@ -184,13 +188,12 @@ const Sidebar = React.forwardRef<
         </Sheet>
       )
     }
-
     return (
       <div
         ref={ref}
-        className="group peer hidden md:block text-sidebar-foreground"
+        className="group peer md:block text-sidebar-foreground"
         data-state={collapsible ? state : "expanded"}
-        data-collapsible={collapsible ? (state === "collapsed" ? "icon" : "offcanvas") : ""}
+         data-collapsible={collapsible ? (state === "collapsed" ? "icon" : "") : ""} 
         data-variant={variant}
         data-side={side}
       >

@@ -192,8 +192,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           name: profileToUse.name || "Usuario",
           avatarUrl:
             profileToUse.avatarUrl || `https://placehold.co/100x100.png`,
-          role: profileToUse.role,
-          grade: profileToUse.grade,
+          role: profileToUse.role
         });
       } else {
         // Final fallback, should not be reached with the logic above, but good for safety.
