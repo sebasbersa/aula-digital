@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { type ReactNode, useEffect, useState, useCallback } from "react";
@@ -9,7 +10,7 @@ import {
   SidebarFooter,
   SidebarInset,
 } from "../../components/ui/sidebar";
-import { AppLogo } from "../../components/icons";
+import { AppLogo, FaviconIcon } from "../../components/icons";
 import {
   Avatar,
   AvatarFallback,
@@ -24,11 +25,15 @@ import { auth } from "../../lib/firebase";
 import { getMembersByOwnerId } from "../../services/members";
 import { FamilyProvider, useFamily } from "../../contexts/family-context";
 import Link from "next/link";
+import { AppHeader } from "@/components/app-header";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useSidebar } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 
 function LayoutSkeleton() {
   return (
     <SidebarProvider>
-      <Sidebar collapsible="none">
+      <Sidebar collapsible>
         <SidebarHeader className="p-4">
           <div className="relative w-32 h-10">
             <Skeleton className="h-full w-full" />
@@ -67,6 +72,17 @@ const roleDisplayNames: Record<Role, string> = {
   owner: "Propietario",
   content_admin: "Admin",
 };
+
+// Componente separado para el botón para poder usar el hook `useSidebar`
+function MobileSidebarTrigger() {
+    const { toggleSidebar } = useSidebar();
+    return (
+        <Button variant="ghost" className="md:hidden flex items-center gap-2 p-1 h-auto" onClick={toggleSidebar}>
+            <FaviconIcon className="w-8 h-8 shrink-0" />
+            <span className="text-sm text-muted-foreground font-medium">Menú</span>
+        </Button>
+    );
+}
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const params = useParams();
@@ -204,35 +220,71 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <FamilyProvider value={{ members, setMembers, currentUser, loading }}>
       <SidebarProvider>
-        <Sidebar collapsible="none">
-          <SidebarHeader className="p-4 flex justify-center">
-            <Link href="/select-profile" className="relative h-auto w-52">
-              <AppLogo />
-            </Link>
-          </SidebarHeader>
-          <SidebarContent>
-            <div className="p-2">
-              <SideNav role={activeUser.role} ownerProfile={ownerProfile} />
+        <Sheet>
+          <Sidebar collapsible>
+            <SheetContent side="left" className="md:hidden p-0">
+              <SidebarHeader className="p-4 flex justify-center border-b">
+                <Link href="/select-profile" className="relative h-auto w-52">
+                  <AppLogo />
+                </Link>
+                <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
+              </SidebarHeader>
+              <SidebarContent>
+                <div className="p-2">
+                  <SideNav role={activeUser.role} ownerProfile={ownerProfile} />
+                </div>
+              </SidebarContent>
+              <SidebarFooter className="p-4 border-t absolute bottom-0 w-full">
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarImage src={activeUser.avatarUrl} alt={activeUser.name} />
+                    <AvatarFallback>{activeUser.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold">{activeUser.name}</p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {userDescription}
+                    </p>
+                  </div>
+                </div>
+              </SidebarFooter>
+            </SheetContent>
+
+            <div className="hidden md:flex md:flex-col h-full">
+              <SidebarHeader className="p-4 flex justify-center">
+                <Link href="/select-profile" className="relative h-auto w-52">
+                  <AppLogo />
+                </Link>
+              </SidebarHeader>
+              <SidebarContent>
+                <div className="p-2">
+                  <SideNav role={activeUser.role} ownerProfile={ownerProfile} />
+                </div>
+              </SidebarContent>
+              <SidebarFooter className="p-4 border-t">
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarImage src={activeUser.avatarUrl} alt={activeUser.name} />
+                    <AvatarFallback>{activeUser.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold">{activeUser.name}</p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {userDescription}
+                    </p>
+                  </div>
+                </div>
+              </SidebarFooter>
             </div>
-          </SidebarContent>
-          <SidebarFooter className="p-4 border-t">
-            <div className="flex items-center gap-3">
-              <Avatar>
-                <AvatarImage src={activeUser.avatarUrl} alt={activeUser.name} />
-                <AvatarFallback>{activeUser.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-semibold">{activeUser.name}</p>
-                <p className="text-xs text-muted-foreground capitalize">
-                  {userDescription}
-                </p>
-              </div>
-            </div>
-          </SidebarFooter>
-        </Sidebar>
-        <SidebarInset>
-          <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
-        </SidebarInset>
+          </Sidebar>
+
+          <SidebarInset>
+            <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+              <MobileSidebarTrigger />
+            </header>
+            <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
+          </SidebarInset>
+        </Sheet>
       </SidebarProvider>
     </FamilyProvider>
   );

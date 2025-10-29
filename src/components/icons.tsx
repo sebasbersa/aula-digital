@@ -15,6 +15,18 @@ export function AppLogo(props: SVGProps<SVGSVGElement> & { priority?: boolean })
   );
 }
 
+export function FaviconIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Image
+      src="/favicon.ico"
+      alt="Favicon"
+      width={40}
+      height={40}
+      className={props.className?.toString()}
+    />
+  );
+}
+
 
 export function WhatsAppIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -106,6 +118,3 @@ export function FacebookIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-    
-
-    
