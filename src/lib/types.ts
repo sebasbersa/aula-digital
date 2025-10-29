@@ -81,6 +81,8 @@ export type Report = {
   recommendations: string[];
 };
 
+export type PlanTypes = "mensual" | "anual" | "semestral";
+
 export type Plan = {
   name: string;
   price: string;
@@ -92,6 +94,7 @@ export type Plan = {
   isCurrent?: boolean;
   isMostChosen?: boolean;
   isRecommended?: boolean;
+  type: PlanTypes
 };
 
 export type SubscriptionStatus = 'active' | 'trial' | 'inactive' | 'past_due' | 'canceled';
@@ -101,6 +104,7 @@ export type FlowSuscription = {
   subscriptionId: string;
   planName: 'Plan Mensual' | 'Plan Semestral' | 'Plan Anual';
   createdAt: string;
+  activatedAt: string | null;
   subscriptionStartedAt?: string | null;
   lastPaymentStatus: boolean;
 }

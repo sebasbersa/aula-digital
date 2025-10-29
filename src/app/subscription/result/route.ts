@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
     const subscriptionId = suscripcionResponse.subscriptionId;
     member.flowSuscription!!.subscriptionId = subscriptionId;
     member.subscriptionStatus = "active";
+    member.flowSuscription!!.activatedAt = new Date().toISOString(),
     await updateMemberByUidAsAdmin(member.ownerId, member);
     const successUrl = new URL('/subscription/success?status=success', request.url);
     return new NextResponse(null, {

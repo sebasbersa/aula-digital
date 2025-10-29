@@ -64,6 +64,7 @@ export default function SubscriptionPage() {
   const { toast } = useToast();
   const [subscriptionStatus, setSubscriptionStatus] = useState("");
   const [isSubscriptionActive, setIsSubscriptionActive] = useState(false);
+  const [subscribedPlan, setSubscribedPlan] = useState<Plan | null>(null);
 
   useEffect(() => {
     if (members && members.length > 0) {
@@ -113,10 +114,14 @@ export default function SubscriptionPage() {
   };
 
   useEffect(() => {
+    console.log(ownerProfile);
     setSubscriptionStatus(ownerProfile?.subscriptionStatus || "");
-    console.log(ownerProfile?.subscriptionStatus);
     if (ownerProfile?.subscriptionStatus === "active") {
       setIsSubscriptionActive(true);
+      const activePlan = plans.find(
+        (x) => x.name === ownerProfile.flowSuscription!!.planName
+      );
+      setSubscribedPlan(activePlan || null);
       return;
     }
     if (ownerProfile?.subscriptionStatus === "trial") {
@@ -133,6 +138,62 @@ export default function SubscriptionPage() {
     // const isSubscriptionActive =
     //   subscriptionStatus === "active" || subscriptionStatus === "trial";
   }, [ownerProfile]);
+
+  const getNextPaymentDate = () => {
+    // 1. Validar que los datos necesarios existen y son correctos.
+    // El '!!' asegura que no es nulo o undefined, pero si la estructura no existe, esto fallará.
+    // Es más seguro usar encadenamiento opcional `?.` como tenías antes. Lo mantendré para evitar errores.
+    const activationDateString = ownerProfile?.flowSuscription?.activatedAt;
+
+    if (!activationDateString) {
+      console.error("Error: No se encontró la fecha de activación.");
+      return null; // Devolvemos null si no hay fecha
+    }
+
+    const activatedAt = new Date(activationDateString);
+
+    // Comprobar si la fecha es válida
+    if (isNaN(activatedAt.getTime())) {
+      console.error("Error: La fecha de activación no es válida.");
+      return null;
+    }
+
+    const hoy = new Date();
+    // Para una comparación justa, ponemos la hora de "hoy" al inicio del día.
+    hoy.setHours(0, 0, 0, 0);
+
+    // 2. Determinar el intervalo de meses a sumar según el plan
+    let mesesASumar;
+    if (subscribedPlan === "mensual") {
+      mesesASumar = 1;
+    } else if (subscribedPlan === "anual") {
+      mesesASumar = 12;
+    } else {
+      // Asumimos que el caso restante es "semestral"
+      mesesASumar = 6;
+    }
+
+    // Si subscribedPlan no es ninguno de los esperados, mesesASumar será undefined.
+    if (typeof mesesASumar === "undefined") {
+      console.error(
+        `Error: El tipo de plan "${subscribedPlan}" no es reconocido.`
+      );
+      return null;
+    }
+
+    // 3. Calcular la próxima fecha de pago
+    // Creamos una copia de la fecha de activación para no modificar la original.
+    let proximaFechaDePago = new Date(activatedAt);
+
+    // Mientras la fecha de pago calculada sea en el pasado o hoy,
+    // le seguimos sumando el intervalo del plan hasta encontrar la próxima fecha futura.
+    while (proximaFechaDePago <= hoy) {
+      proximaFechaDePago.setMonth(proximaFechaDePago.getMonth() + mesesASumar);
+    }
+
+    // 4. Devolver el resultado
+    return proximaFechaDePago;
+  };
 
   if (familyLoading) {
     return <Skeleton className="h-96 w-full" />;
@@ -155,7 +216,7 @@ export default function SubscriptionPage() {
         )}
       </div>
 
-      {isSubscriptionActive && ownerProfile ? (
+      {isSubscriptionActive && ownerProfile?.subscriptionStatus !== "trial" ? (
         <Card className="max-w-3xl mx-auto border-green-200 bg-green-50/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -192,17 +253,11 @@ export default function SubscriptionPage() {
                     : "Próximo pago el"}
                 </p>
                 <p className="text-muted-foreground">
-                  {ownerProfile.trialEndsAt
+                  {ownerProfile.subscriptionStatus === "trial"
                     ? format(ownerProfile.trialEndsAt, "d 'de' MMMM, yyyy", {
                         locale: es,
                       })
-                    : ownerProfile.subscriptionPeriodEndsAt
-                    ? format(
-                        ownerProfile.subscriptionPeriodEndsAt,
-                        "d 'de' MMMM, yyyy",
-                        { locale: es }
-                      )
-                    : "No especificado"}
+                    : getNextPaymentDate()}
                 </p>
               </div>
               <div className="p-3 bg-background rounded-md border">
@@ -281,14 +336,14 @@ export default function SubscriptionPage() {
                     </h3>
                     <div>
                       <span className="text-3xl font-bold">
-                        {selectedPlan.equivalentPrice || selectedPlan.price}
+                        {selectedPlan.price}
                       </span>
                       <span className="text-muted-foreground">/mes</span>
                     </div>
                   </div>
                   {selectedPlan.equivalentPrice && (
                     <p className="text-sm text-muted-foreground text-right -mt-2">
-                      Se cobra {selectedPlan.price} {selectedPlan.period}
+                      Se cobra {selectedPlan.equivalentPrice}
                     </p>
                   )}
 
