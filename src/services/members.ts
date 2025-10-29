@@ -3,45 +3,31 @@ import { db, auth } from '@/lib/firebase';
 import type { Member, Role } from '@/lib/types';
 import { DocumentSnapshot, collection, addDoc, getDocs, query, where, doc, setDoc, deleteDoc, DocumentData, updateDoc, getDoc, arrayUnion, arrayRemove, serverTimestamp, writeBatch, Timestamp } from 'firebase/firestore';
 import { getPracticeGuides } from './practiceGuides';
+import { User } from 'firebase/auth';
+import { getFlowSubscription } from './flowServices';
 
 // Helper function to convert Firestore data to a Member object
 const convertFirestoreDataToMember = (doc: DocumentData, docId: string): Member => {
     const data = doc as Omit<Member, 'id'>;
     // Convert Firestore Timestamps to JS Dates if they exist
     const trialEndsAt = data.trialEndsAt && typeof (data.trialEndsAt as any).toDate === 'function' ? (data.trialEndsAt as any).toDate() : null;
-    const createdAt = data.createdAt && typeof (data.createdAt as any).toDate === 'function' ? (data.createdAt as any).toDate() : new Date();
     return {
-        id: docId,
-        uid: data.uid,
-        ownerId: data.ownerId,
-        tenantId: data.tenantId,
-        name: data.name,
-        lastName: data.lastName,
-        email: data.email,
-        role: data.role,
-        avatarUrl: data.avatarUrl,
         age: data.age,
-        learningObjective: data.learningObjective,
-        score: data.score,
+        avatarUrl: data.avatarUrl,
+        email: data.email,
+        flowSuscription: data.flowSuscription,
         friendCode: data.friendCode,
         friends: data.friends,
         isOwnerProfile: data.isOwnerProfile,
-        rut: data.rut,
-        grade: data.grade,
-        englishLevelId: data.englishLevelId,
-
-        // --- LA CORRECCIÓN CLAVE ESTÁ AQUÍ ---
-        // Incluimos el objeto 'flowSuscription'. Si no existe en la base de datos, 
-        // se asignará 'null' para evitar errores.
-        flowSuscription: data.flowSuscription || null,
-
-        // Se convierten los Timestamps de Firestore a objetos Date de JavaScript.
-        // Esto es crucial para que funciones como 'format()' no fallen.
-        createdAt: createdAt,
+        lastName: data.lastName,
+        learningObjective: data.learningObjective,
+        name: data.name,
+        ownerId: data.ownerId,
+        role: data.role,
+        score: data.score,
+        subscriptionStatus: data.subscriptionStatus,
         trialEndsAt: trialEndsAt,
-
-        // El resto de los campos relacionados con la suscripción
-        subscriptionStatus: data.subscriptionStatus || null,
+        uid: data.uid,
     };
 };
 
@@ -64,7 +50,7 @@ const generateFriendCode = async (name: string): Promise<string> => {
     return friendCode;
 };
 
-export async function getMembers(ownerId: string): Promise<Member[]> {
+export async function getMembersByOwnerId(ownerId: string): Promise<Member[]> {
     if (!ownerId) {
         console.warn("getMembers called without ownerId.");
         return [];
@@ -85,7 +71,27 @@ export async function getMembers(ownerId: string): Promise<Member[]> {
         throw new Error("Failed to fetch members from database.");
     }
 }
+export async function getMembersByUid(uid: string): Promise<Member[]> {
+    if (!uid) {
+        console.warn("getMembers called without uid.");
+        return [];
+    }
+    try {
+        const membersRef = collection(db, 'members');
+        const q = query(membersRef, where("uid", "==", uid));
+        const querySnapshot = await getDocs(q);
 
+        const members: Member[] = [];
+        querySnapshot.forEach((docSnap) => {
+            members.push(convertFirestoreDataToMember(docSnap.data(), docSnap.id));
+        });
+
+        return members;
+    } catch (error) {
+        console.error("Error fetching members: ", error);
+        throw new Error("Failed to fetch members from database.");
+    }
+}
 export async function getMemberById(memberId: string): Promise<Member | null> {
     if (!memberId) return null;
     try {
@@ -160,7 +166,6 @@ export async function addMember(ownerId: string, memberData: Partial<Member>, is
         };
 
         if (memberData.age) newMemberPayload.age = memberData.age;
-        if (memberData.grade) newMemberPayload.grade = memberData.grade;
         if (memberData.learningObjective) newMemberPayload.learningObjective = memberData.learningObjective;
 
         if (memberData.role === 'student' || memberData.role === 'adult_learner') {
@@ -184,22 +189,36 @@ export async function addMember(ownerId: string, memberData: Partial<Member>, is
 }
 
 
-export async function updateMember(memberId: string, memberData: Partial<Pick<Member, 'name' | 'avatarUrl' | 'grade' | 'friendCode' | 'englishLevelId' | 'email' | 'flowSuscription'>>): Promise<Member> {
+export async function updateMember(docId: string, memberData: Partial<Member>): Promise<Member> {
     try {
-        const memberRef = doc(db, 'members', memberId);
+        const memberRef = doc(db, 'members', docId);
         await updateDoc(memberRef, memberData);
         const updatedDocSnap: DocumentSnapshot = await getDoc(memberRef);
         if (!updatedDocSnap.exists()) {
             // Este es un caso muy improbable si la actualización tuvo éxito, pero es bueno manejarlo
             throw new Error("Member not found after update.");
         }
-        return { id: updatedDocSnap.id, ...updatedDocSnap.data() } as Member;
+        return { uid: updatedDocSnap.id, ...updatedDocSnap.data() } as Member;
     } catch (error) {
         console.error("Error updating member: ", error);
         throw new Error("Could not update member profile.");
     }
 }
-
+export async function updateMemberByMemberId(memberId: string, memberData: Member): Promise<Member | null> {
+    try {
+        const membersRef = collection(db, 'members');
+        const q = query(membersRef, where("uid", "==", memberId));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            const memberDocSnapshot = querySnapshot.docs[0];
+            return updateMember(memberDocSnapshot.id, memberData);
+        }
+        return null;
+    } catch (error) {
+        console.error("Error updating member: ", error);
+        throw new Error("Could not update member profile.");
+    }
+}
 export async function getOrCreateFriendCode(memberId: string, name: string): Promise<string> {
     const memberRef = doc(db, 'members', memberId);
     try {
@@ -307,3 +326,50 @@ export async function removeFriend(currentMemberId: string, friendMemberId: stri
 
     await batch.commit();
 }
+export const validarEstadoDeSuscripcion = async (user: User): Promise<any> => {
+    console.log('user', user)
+    const members = await getMembersByUid(user.uid);
+    if (members.length == 0) {
+        return {
+            success: true,
+        };
+    }
+    const member = members[0];
+    if (member.subscriptionStatus === "trial") {
+        return {
+            success: true,
+        };
+    }
+    if (!member.flowSuscription?.subscriptionId) {
+        return {
+            success: true,
+        };
+    }
+    const subscription = await getFlowSubscription(
+        member.flowSuscription.subscriptionId
+    );
+    const statusActiva = 1;
+    const statusTrial = 2;
+    const moroseNone = 0;
+    if (
+        subscription.morose == moroseNone &&
+        (subscription.status == statusActiva ||
+            subscription.status == statusTrial)
+    ) {
+        if (["canceled", "past_due"].includes(member.subscriptionStatus!!)) {
+            member.subscriptionStatus = !member.flowSuscription?.subscriptionId
+                ? "trial"
+                : "active";
+            await updateMemberByMemberId(member.uid, member);
+        }
+        return {
+            success: true,
+        };
+    }
+    member.subscriptionStatus =
+        subscription.morose == moroseNone ? "canceled" : "past_due";
+    await updateMemberByMemberId(member.uid, member);
+    return {
+        success: false,
+    };
+};

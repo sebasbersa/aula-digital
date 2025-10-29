@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -11,29 +11,43 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { Loader } from 'lucide-react';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { MailCheck } from 'lucide-react';
-import { addMember } from '@/services/members';
-import { generateAvatarUrl } from '@/lib/data';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { Loader } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  updateProfile,
+} from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { MailCheck } from "lucide-react";
+import { addMember } from "@/services/members";
+import { generateAvatarUrl } from "@/lib/data";
 
-const formSchema = z.object({
-  firstName: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres.' }),
-  lastName: z.string().min(2, { message: 'El apellido debe tener al menos 2 caracteres.' }),
-  email: z.string().email({ message: 'Por favor, introduce un correo válido.' }),
-  password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres.' }),
-  confirmPassword: z.string(),
-}).refine(data => data.password === data.confirmPassword, {
-  message: 'Las contraseñas no coinciden.',
-  path: ['confirmPassword'],
-});
+const formSchema = z
+  .object({
+    firstName: z
+      .string()
+      .min(2, { message: "El nombre debe tener al menos 2 caracteres." }),
+    lastName: z
+      .string()
+      .min(2, { message: "El apellido debe tener al menos 2 caracteres." }),
+    email: z
+      .string()
+      .email({ message: "Por favor, introduce un correo válido." }),
+    password: z
+      .string()
+      .min(6, { message: "La contraseña debe tener al menos 6 caracteres." }),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Las contraseñas no coinciden.",
+    path: ["confirmPassword"],
+  });
 
 function SignupFormContent() {
   const { toast } = useToast();
@@ -44,50 +58,62 @@ function SignupFormContent() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
     },
   });
+  function validarPassword(password: string) {
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/;
+    return regex.test(password);
+  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      if (!validarPassword(values.password)) {
+      toast({
+        title: "Error",
+        description:
+          "Ingrese una contraseña válida.",
+        variant: "destructive",
+      });
+      return;
+    }
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      );
       const user = userCredential.user;
 
-      await updateProfile(user, { displayName: `${values.firstName} ${values.lastName}` });
-
-      // await addMember(user.uid, {
-      //   name: values.firstName,
-      //   lastName: values.lastName,
-      //   email: values.email,
-      //   role: 'owner',
-      //   avatarUrl: generateAvatarUrl(values.firstName),
-      // }, true);
+      await updateProfile(user, {
+        displayName: `${values.firstName} ${values.lastName}`,
+      });
 
       await sendEmailVerification(user);
 
       await auth.signOut();
 
       setShowVerificationMessage(true);
-
     } catch (error: any) {
-      console.error('Error during sign up:', error);
-      if (error.code === 'auth/email-already-in-use') {
+      console.error("Error during sign up:", error);
+      if (error.code === "auth/email-already-in-use") {
         toast({
-          title: 'Correo ya registrado',
-          description: 'La dirección de correo electrónico ya está en uso por otra cuenta.',
-          variant: 'destructive',
+          title: "Correo ya registrado",
+          description:
+            "La dirección de correo electrónico ya está en uso por otra cuenta.",
+          variant: "destructive",
         });
       } else {
         toast({
-          title: 'Error en el registro',
-          description: error.message || 'No se pudo crear la cuenta. Por favor, inténtalo de nuevo.',
-          variant: 'destructive',
+          title: "Error en el registro",
+          description:
+            error.message ||
+            "No se pudo crear la cuenta. Por favor, inténtalo de nuevo.",
+          variant: "destructive",
         });
       }
     } finally {
@@ -101,9 +127,11 @@ function SignupFormContent() {
         <MailCheck className="h-4 w-4" />
         <AlertTitle>¡Revisa tu correo!</AlertTitle>
         <AlertDescription>
-          Hemos enviado un enlace de verificación a tu correo electrónico. Por favor, haz clic en el enlace para activar tu cuenta y luego inicia sesión.
+          Hemos enviado un enlace de verificación a tu correo electrónico. Por
+          favor, haz clic en el enlace para activar tu cuenta y luego inicia
+          sesión.
         </AlertDescription>
-        <Button onClick={() => router.push('/login')} className="mt-4 w-full">
+        <Button onClick={() => router.push("/login")} className="mt-4 w-full">
           Ir a Iniciar Sesión
         </Button>
       </Alert>
@@ -163,6 +191,7 @@ function SignupFormContent() {
               <FormControl>
                 <Input type="password" placeholder="••••••••" {...field} />
               </FormControl>
+                <label style={{fontSize: "12px"}}>La contraseña debe contener números, simbolos, mayúscula y minúscula</label>
               <FormMessage />
             </FormItem>
           )}

@@ -33,7 +33,7 @@ import type { Member, Role } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
-import { addMember, deleteMember, updateMember, getMembers } from '@/services/members';
+import { addMember, deleteMember, updateMember, getMembersByOwnerId } from '@/services/members';
 import { EditMemberDialog } from '@/components/edit-member-dialog';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';

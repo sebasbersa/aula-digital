@@ -110,32 +110,22 @@ export type FlowSuscription = {
 }
 
 export type Member = {
-  id: string;
-  uid: string;
-  ownerId: string;
-  tenantId: string;
-  name: string;
-  lastName: string;
-  email: string;
-  rut?: string;
-  role: Role;
-  avatarUrl: string;
-  tempPass?: string;
   age?: number;
-  grade?: string;
-  learningObjective?: string;
-  score?: number;
+  avatarUrl: string;
+  email?: string;
+  flowSuscription?: FlowSuscription | null;
   friendCode?: string;
   friends?: string[];
-  isOwnerProfile?: boolean;
-  englishLevelId?: string | null;
-  createdAt: Date;
-  flowSuscription?: FlowSuscription | null;
-  subscriptionPlan?: 'Plan Mensual' | 'Plan Semestral' | 'Plan Anual' | null;
+  isOwnerProfile: boolean;
+  lastName: string;
+  learningObjective?: string;
+  name: string;
+  ownerId: string;
+  role: Role;
+  score?: number;
   subscriptionStatus?: SubscriptionStatus | null;
-  subscriptionStartedAt?: Date | null;
-  subscriptionPeriodEndsAt?: Date | null;
   trialEndsAt?: Date | null;
+  uid: string;
 };
 
 export type ChatMessage = {

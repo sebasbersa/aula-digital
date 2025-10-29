@@ -18,7 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { getMembers, updateMember } from '@/services/members';
+import { getMembersByOwnerId, updateMember } from '@/services/members';
 import { FamilyProvider } from '@/contexts/family-context';
 import Link from 'next/link';
 
@@ -73,7 +73,7 @@ export default function OwnerLayout({
 
   const loadData = useCallback(async (uid: string, fUser: FirebaseUser) => {
     try {
-      const fetchedMembers = await getMembers(uid);
+      const fetchedMembers = await getMembersByOwnerId(uid);
       setMembers(fetchedMembers);
       
       const owner = fetchedMembers.find(m => m.isOwnerProfile);

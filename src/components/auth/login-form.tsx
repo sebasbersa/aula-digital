@@ -1,10 +1,9 @@
+"use client";
 
-'use client';
-
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -12,19 +11,29 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { Loader } from 'lucide-react';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { Loader } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { auth } from "@/lib/firebase";
+import { signInWithEmailAndPassword, User } from "firebase/auth";
+import {
+  getMembersByOwnerId,
+  getMembersByUid,
+  updateMember,
+  updateMemberByMemberId,
+  validarEstadoDeSuscripcion,
+} from "@/services/members";
+import { getFlowSubscription } from "@/services/flowServices";
 
 const formSchema = z.object({
-  email: z.string().email({ message: 'Por favor, introduce un correo válido.' }),
+  email: z
+    .string()
+    .email({ message: "Por favor, introduce un correo válido." }),
   password: z.string().min(6, {
-    message: 'La contraseña debe tener al menos 6 caracteres.',
+    message: "La contraseña debe tener al menos 6 caracteres.",
   }),
 });
 
@@ -36,38 +45,45 @@ export function LoginForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: '',
-      password: '',
+      email: "",
+      password: "",
     },
   });
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
-      
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      );
+
       if (!userCredential.user.emailVerified) {
         await auth.signOut(); // Cerramos la sesión para que no quede autenticado
         toast({
-          title: 'Correo no verificado',
-          description: 'Por favor, revisa tu bandeja de entrada y verifica tu correo antes de iniciar sesión.',
-          variant: 'destructive',
+          title: "Correo no verificado",
+          description:
+            "Por favor, revisa tu bandeja de entrada y verifica tu correo antes de iniciar sesión.",
+          variant: "destructive",
         });
         setIsLoading(false);
         return;
       }
-      
+
       toast({
-        title: '¡Bienvenido!',
-        description: 'Has iniciado sesión correctamente.',
+        title: "¡Bienvenido!",
+        description: "Has iniciado sesión correctamente.",
       });
-      router.push('/select-profile'); 
+      
+      await validarEstadoDeSuscripcion(userCredential.user);
+      router.push("/select-profile");
     } catch (error) {
-      console.error('Error signing in:', error);
+      console.error("Error signing in:", error);
       toast({
-        title: 'Error de autenticación',
-        description: 'Las credenciales son incorrectas. Por favor, inténtalo de nuevo.',
-        variant: 'destructive',
+        title: "Error de autenticación",
+        description:
+          "Las credenciales son incorrectas. Por favor, inténtalo de nuevo.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -103,10 +119,11 @@ export function LoginForm() {
             </FormItem>
           )}
         />
-        <Button 
-            type="submit" 
-            className="w-full bg-[#F97316] text-white hover:bg-[#EA580C] transition-transform duration-300 transform hover:-translate-y-1" 
-            disabled={isLoading}>
+        <Button
+          type="submit"
+          className="w-full bg-[#F97316] text-white hover:bg-[#EA580C] transition-transform duration-300 transform hover:-translate-y-1"
+          disabled={isLoading}
+        >
           {isLoading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
           Entrar
         </Button>

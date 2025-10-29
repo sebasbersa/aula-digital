@@ -103,7 +103,7 @@ export default function AdminDashboardPage() {
     };
     
     const getSubscriptionEndDate = (user: Member) => {
-        const date = user.subscriptionStatus === 'trial' ? user.trialEndsAt : user.subscriptionPeriodEndsAt;
+        const date = user.trialEndsAt;
         if (!date) return 'N/A';
         return new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
@@ -145,7 +145,7 @@ export default function AdminDashboardPage() {
                             </TableHeader>
                             <TableBody>
                                 {filteredProfiles.length > 0 ? filteredProfiles.map(user => (
-                                    <TableRow key={user.id}>
+                                    <TableRow key={user.uid}>
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <Avatar>
@@ -161,7 +161,7 @@ export default function AdminDashboardPage() {
                                                 {user.subscriptionStatus ? statusText[user.subscriptionStatus] : 'N/A'}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell>{user.subscriptionPlan || 'N/A'}</TableCell>
+                                        <TableCell>{user.flowSuscription?.planName || 'N/A'}</TableCell>
                                         <TableCell className="text-right">{getSubscriptionEndDate(user)}</TableCell>
                                     </TableRow>
                                 )) : (

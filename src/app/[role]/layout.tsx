@@ -21,7 +21,7 @@ import { Skeleton } from "../../components/ui/skeleton";
 import { useParams, useRouter, usePathname, redirect } from "next/navigation";
 import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 import { auth } from "../../lib/firebase";
-import { getMembers } from "../../services/members";
+import { getMembersByOwnerId } from "../../services/members";
 import { FamilyProvider, useFamily } from "../../contexts/family-context";
 import Link from "next/link";
 
@@ -81,7 +81,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   const loadMembers = useCallback(async (uid: string) => {
     try {
-      const fetchedMembers = await getMembers(uid);
+      const fetchedMembers = await getMembersByOwnerId(uid);
       setMembers(fetchedMembers);
       const owner = fetchedMembers.find((m) => m.role === "owner");
       setOwnerProfile(owner || null);

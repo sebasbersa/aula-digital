@@ -1,3 +1,4 @@
+'use server';
 // En este archivo se gestionan todas las llamadas a la api de Flow
 import { createHmac } from 'crypto';
 const API_KEY = process.env.NEXT_PUBLIC_FLOW_API_KEY || "";
@@ -111,5 +112,26 @@ export const createFlowSuscription = async (planId: string, customerId: string):
         body: formdata,
     });
 
+    return await response.json();
+}
+
+export const getFlowSubscription = async (subscriptionId: string): Promise<any> => {
+    const paramsParaFirmar: Record<string, any> = {
+        apiKey: API_KEY,
+        subscriptionId: subscriptionId,
+    };
+    const firma = generarFirma(paramsParaFirmar, API_SECRET);
+    const queryParams = new URLSearchParams({
+        ...paramsParaFirmar, 
+        s: firma,            
+    });
+    const url = `${BASE_URL}/subscription/get?${queryParams.toString()}`;
+
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+        },
+    });
     return await response.json();
 }

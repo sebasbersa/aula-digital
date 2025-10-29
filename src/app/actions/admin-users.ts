@@ -9,38 +9,25 @@ import { cookies } from 'next/headers';
 
 const convertFirestoreDataToMember = (doc: DocumentData, docId: string): Member => {
     const data = doc as Omit<Member, 'id'> & { createdAt?: Timestamp, subscriptionStartedAt?: Timestamp, subscriptionPeriodEndsAt?: Timestamp, trialEndsAt?: Timestamp };
-    const createdAt = data.createdAt?.toDate() || new Date();
-    const subscriptionStartedAt = data.subscriptionStartedAt?.toDate() || null;
-    const subscriptionPeriodEndsAt = data.subscriptionPeriodEndsAt?.toDate() || null;
     const trialEndsAt = data.trialEndsAt?.toDate() || null;
     
-    return {
-        id: docId,
-        uid: data.uid || '',
-        ownerId: data.ownerId,
-        tenantId: data.tenantId || '',
-        name: data.name,
-        lastName: data.lastName,
-        email: data.email || '',
-        rut: data.rut,
-        role: data.role,
-        avatarUrl: data.avatarUrl,
+     return {
         age: data.age,
-        grade: data.grade,
-        learningObjective: data.learningObjective,
-        score: data.score || 0,
+        avatarUrl: data.avatarUrl,
+        email: data.email,
+        flowSuscription: data.flowSuscription,
         friendCode: data.friendCode,
-        friends: data.friends || [],
-        isOwnerProfile: data.isOwnerProfile || false,
-        englishLevelId: data.englishLevelId,
-        subscriptionId: data.subscriptionId,
-        customerId: data.customerId,
-        subscriptionPlan: data.subscriptionPlan,
+        friends: data.friends,
+        isOwnerProfile: data.isOwnerProfile,
+        lastName: data.lastName,
+        learningObjective: data.learningObjective,
+        name: data.name,
+        ownerId: data.ownerId,
+        role: data.role,
+        score: data.score,
         subscriptionStatus: data.subscriptionStatus,
-        subscriptionStartedAt,
-        subscriptionPeriodEndsAt,
-        trialEndsAt,
-        createdAt,
+        trialEndsAt: trialEndsAt,
+        uid: data.uid,
     };
 };
 

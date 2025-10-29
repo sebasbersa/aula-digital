@@ -15,10 +15,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-
+  console.log('pasa por aqui')
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
+        console.log('user', user)
         // User is already authenticated, redirect to profile selection.
         router.replace('/select-profile');
       } else {

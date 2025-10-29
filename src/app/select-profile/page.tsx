@@ -4,7 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { getMembers, addMember } from "@/services/members";
+import {
+  getMembersByOwnerId,
+  addMember,
+  validarEstadoDeSuscripcion,
+} from "@/services/members";
 import type { Member } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -23,6 +27,10 @@ import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info } from "lucide-react";
+import {
+  getLastValidationSubscriptionDate,
+  saveValidationSubscriptionDate,
+} from "@/services/clientUtils";
 
 function ProfileSkeleton() {
   return (
@@ -48,7 +56,7 @@ export default function SelectProfilePage() {
     async (user: FirebaseUser) => {
       setLoading(true);
       try {
-        const fetchedMembers = await getMembers(user.uid);
+        const fetchedMembers = await getMembersByOwnerId(user.uid);
         setMembers(fetchedMembers);
         if (fetchedMembers.length === 0) {
           setIsFirstTime(true);
@@ -136,6 +144,34 @@ export default function SelectProfilePage() {
     }
   };
 
+  async function validarUserSubscription() {
+    const lastValidationStr = getLastValidationSubscriptionDate();
+    if (!lastValidationStr) {
+      goToValidate();
+      return;
+    }
+    const lastValidation = JSON.parse(lastValidationStr);
+    const fecha = new Date(lastValidation.date);
+    if ((new Date() - fecha) / (60 * 60 * 24 * 1000) > 1) {
+      goToValidate();
+      return;
+    }
+    if (!lastValidation.success) {
+      goToValidate();
+    }
+  }
+  const goToValidate = async () => {
+    const respuesta = await validarEstadoDeSuscripcion(currentUser!!);
+    // guardar ultima validación
+    saveValidationSubscriptionDate(respuesta.success);
+  };
+  useEffect(() => {
+    if (!currentUser) {
+      return;
+    }
+    validarUserSubscription();
+  }, [currentUser]);
+
   return (
     <>
       <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
@@ -220,7 +256,7 @@ export default function SelectProfilePage() {
           </DialogDescription>
         </DialogHeader>
         <DialogContent>
-          <div style={{ overflowY: "auto", height: "90vh", padding: '1rem' }}>
+          <div style={{ overflowY: "auto", height: "90vh", padding: "1rem" }}>
             {isFirstTime && (
               <Alert>
                 <Info className="h-4 w-4" />

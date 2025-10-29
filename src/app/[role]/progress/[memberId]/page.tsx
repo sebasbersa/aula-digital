@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getMembers } from '@/services/members';
+import { getMembersByOwnerId } from '@/services/members';
 import { getGrades } from '@/services/grades';
 import { getSubjects } from '@/services/subjects';
 import { getPracticeGuides } from '@/services/practiceGuides';
@@ -121,7 +121,7 @@ export default function ProgressReportPage() {
             setLoading(true);
             try {
                 const [allMembers, gradesData, subjectsData, guidesData, sessionsData] = await Promise.all([
-                    getMembers(sessionStorage.getItem('selectedProfile') ? JSON.parse(sessionStorage.getItem('selectedProfile')!).ownerId : ''),
+                    getMembersByOwnerId(sessionStorage.getItem('selectedProfile') ? JSON.parse(sessionStorage.getItem('selectedProfile')!).ownerId : ''),
                     getGrades(memberId),
                     getSubjects(),
                     getPracticeGuides(memberId),
