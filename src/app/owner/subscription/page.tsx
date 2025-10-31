@@ -34,13 +34,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader } from "lucide-react";
 import { useFamily } from "@/contexts/family-context";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { v4 as uuidv4 } from "uuid";
-import { onAuthStateChanged, User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import { useRouter } from "next/router";
+import { User } from "firebase/auth";
+import GestionarSuscripcionDialog from "@/components/dialogos/gestionar-suscripcion-dialog";
 
 const statusDisplay: Record<
   SubscriptionStatus,
@@ -65,6 +61,7 @@ export default function SubscriptionPage() {
   const [subscriptionStatus, setSubscriptionStatus] = useState("");
   const [isSubscriptionActive, setIsSubscriptionActive] = useState(false);
   const [subscribedPlan, setSubscribedPlan] = useState<Plan | null>(null);
+ const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     if (members && members.length > 0) {
@@ -114,7 +111,6 @@ export default function SubscriptionPage() {
   };
 
   useEffect(() => {
-    console.log('ownerProfile', ownerProfile);
     setSubscriptionStatus(ownerProfile?.subscriptionStatus || "");
     if (ownerProfile?.subscriptionStatus === "active") {
       setIsSubscriptionActive(true);
@@ -141,8 +137,12 @@ export default function SubscriptionPage() {
     // const isSubscriptionActive =
     //   subscriptionStatus === "active" || subscriptionStatus === "trial";
   }, [ownerProfile]);
+  
+  function handleGestionarSuscripcion() {
+    console.log('gestionar');
+    setIsModalOpen(true)
 
-  console.log('isSubscriptionActive', isSubscriptionActive);
+  }
 
   if (familyLoading) {
     return <Skeleton className="h-96 w-full" />;
@@ -226,8 +226,8 @@ export default function SubscriptionPage() {
             )}
           </CardContent>
           <CardFooter>
-            <Button variant="outline" disabled>
-              Gestionar Suscripción (próximamente)
+            <Button variant="outline" onClick={handleGestionarSuscripcion}>
+              Gestionar Suscripción
             </Button>
           </CardFooter>
         </Card>
@@ -326,6 +326,7 @@ export default function SubscriptionPage() {
           </form>
         </Card>
       )}
+          {isModalOpen && <GestionarSuscripcionDialog user={ownerProfile} onClose={() => setIsModalOpen(false)} />}
     </div>
   );
 }

@@ -70,10 +70,6 @@ export async function updateMemberByUidAsAdmin(memberUid: string, memberData: Pa
             console.log('No se encontraron documentos con ese UID.');
             return;
         }
-        // console.log('querySnapshot.docs');
-        // console.log(querySnapshot.docs);
-        // console.log('querySnapshot.docs[0]');
-        // console.log(querySnapshot.docs[0]);
         if (!querySnapshot.docs[0].exists) {
             console.log('no existe!!!');
             return;

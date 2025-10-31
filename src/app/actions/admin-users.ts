@@ -10,8 +10,9 @@ import { cookies } from 'next/headers';
 const convertFirestoreDataToMember = (doc: DocumentData, docId: string): Member => {
     const data = doc as Omit<Member, 'id'> & { createdAt?: Timestamp, subscriptionStartedAt?: Timestamp, subscriptionPeriodEndsAt?: Timestamp, trialEndsAt?: Timestamp };
     const trialEndsAt = data.trialEndsAt?.toDate() || null;
-    
-     return {
+    const createdAt = data.createdAt?.toDate() || new Date();
+    return {
+        id: docId,
         age: data.age,
         avatarUrl: data.avatarUrl,
         email: data.email,
@@ -28,6 +29,10 @@ const convertFirestoreDataToMember = (doc: DocumentData, docId: string): Member 
         subscriptionStatus: data.subscriptionStatus,
         trialEndsAt: trialEndsAt,
         uid: data.uid,
+        grade: data.grade,
+        englishLevelId: data.englishLevelId,
+        subscriptionPlan: doc.subscriptionPlan,
+        createdAt: createdAt
     };
 };
 
@@ -46,11 +51,11 @@ export async function getOwnerProfiles(): Promise<Member[]> {
 
     try {
         const membersRef = collection(db, 'members');
-        
+
         // This is the most reliable query based on the database structure provided.
         // It finds all documents that represent the main account profile.
         const q = query(membersRef, where('isOwnerProfile', '==', true));
-        
+
         const querySnapshot = await getDocs(q);
 
         const members: Member[] = [];
@@ -58,7 +63,7 @@ export async function getOwnerProfiles(): Promise<Member[]> {
             const member = convertFirestoreDataToMember(docSnap.data(), docSnap.id);
             members.push(member);
         });
-        
+
         return members;
     } catch (error) {
         console.error("Error fetching owner profiles from Firestore: ", error);

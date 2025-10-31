@@ -36,6 +36,8 @@ export function ShareStreakDialog({ isOpen, onClose, streakCount, userName, onSh
   };
 
   const handleCopyToClipboard = () => {
+    console.log(shareText);
+    console.log(navigator.clipboard)
     navigator.clipboard.writeText(shareText).then(() => {
       setCopied(true);
       toast({

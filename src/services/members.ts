@@ -11,7 +11,9 @@ const convertFirestoreDataToMember = (doc: DocumentData, docId: string): Member 
     const data = doc as Omit<Member, 'id'>;
     // Convert Firestore Timestamps to JS Dates if they exist
     const trialEndsAt = data.trialEndsAt && typeof (data.trialEndsAt as any).toDate === 'function' ? (data.trialEndsAt as any).toDate() : null;
+    const createdAt = doc.createdAt?.toDate() || new Date();
     return {
+        id: docId,
         age: data.age,
         avatarUrl: data.avatarUrl,
         email: data.email,
@@ -28,6 +30,10 @@ const convertFirestoreDataToMember = (doc: DocumentData, docId: string): Member 
         subscriptionStatus: data.subscriptionStatus,
         trialEndsAt: trialEndsAt,
         uid: data.uid,
+        grade: data.grade,
+        englishLevelId: data.englishLevelId,
+        subscriptionPlan: doc.subscriptionPlan,
+        createdAt: createdAt
     };
 };
 

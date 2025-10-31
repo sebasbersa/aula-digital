@@ -290,6 +290,7 @@ export default function RecipesPage() {
     if (!generatedRecipe || !currentProfile) return;
   
     try {
+        console.log('currentProfile', currentProfile)
       const newRecipe = await addRecipeWithSubject(
         currentProfile.ownerId,
         currentProfile.id,

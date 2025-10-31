@@ -291,6 +291,7 @@ export default function RecipesPage() {
     try {
       // ✅ Usamos el ID real de la materia en tu app: "cocktails-mocktails"
       console.log("Saving recipe with subjectId:", "cocktails-mocktails");
+        console.log('currentProfile', currentProfile)
   
       const newRecipe = await addRecipeWithSubject(
         currentProfile.ownerId,

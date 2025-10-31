@@ -130,10 +130,10 @@ export function SavedTutoringSession({ session, onDelete, onResume, onCreatePrac
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                     <DropdownMenuItem onClick={handlePrint}>
+                     {/* <DropdownMenuItem onClick={handlePrint}>
                       <Printer className="mr-2 h-4 w-4" />
                       Imprimir
-                    </DropdownMenuItem>
+                    </DropdownMenuItem> */}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">

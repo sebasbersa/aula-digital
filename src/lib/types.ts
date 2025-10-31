@@ -110,6 +110,7 @@ export type FlowSuscription = {
 }
 
 export type Member = {
+  id: string;
   age?: number;
   avatarUrl: string;
   email?: string;
@@ -122,10 +123,14 @@ export type Member = {
   name: string;
   ownerId: string;
   role: Role;
+  englishLevelId?: string | null;
+  createdAt: Date;
   score?: number;
+  subscriptionPlan?: 'Plan Mensual' | 'Plan Semestral' | 'Plan Anual' | null;
   subscriptionStatus?: SubscriptionStatus | null;
   trialEndsAt?: Date | null;
   uid: string;
+  grade?: string;
 };
 
 export type ChatMessage = {

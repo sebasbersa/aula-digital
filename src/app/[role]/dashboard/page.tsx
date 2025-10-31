@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useParams } from 'next/navigation';
+import { getSessionStorageMember } from '@/services/sessionUtils';
 
 function PlaceholderDashboard({ role }: { role: string }) {
     return (
@@ -53,12 +54,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     // We get the selected profile from sessionStorage
-    const selectedProfileString = sessionStorage.getItem('selectedProfile');
-    if (selectedProfileString) {
-        const selectedProfile = JSON.parse(selectedProfileString);
+    const profileMember = getSessionStorageMember();
+    if (!!profileMember) {
         setUser({
-            name: selectedProfile.name || 'Usuario',
-            avatarUrl: selectedProfile.avatarUrl || `https://placehold.co/100x100.png`,
+            name: profileMember.name || 'Usuario',
+            avatarUrl: profileMember.avatarUrl || `https://placehold.co/100x100.png`,
             role: role,
         });
     }

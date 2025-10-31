@@ -31,6 +31,7 @@ import {
   getLastValidationSubscriptionDate,
   saveValidationSubscriptionDate,
 } from "@/services/clientUtils";
+import { removeSessionStorageMember, saveSessionMember } from "@/services/sessionUtils";
 
 function ProfileSkeleton() {
   return (
@@ -90,7 +91,7 @@ export default function SelectProfilePage() {
   }, [router, loadMembers]);
 
   const handleProfileSelection = (member: Member) => {
-    sessionStorage.setItem("selectedProfile", JSON.stringify(member));
+    saveSessionMember(member);
     if (member.role === "owner") {
       router.push(`/owner/profiles`);
     } else {
@@ -100,7 +101,7 @@ export default function SelectProfilePage() {
 
   const handleLogout = async () => {
     await auth.signOut();
-    sessionStorage.removeItem("selectedProfile");
+    removeSessionStorageMember();
     router.push("/");
   };
 

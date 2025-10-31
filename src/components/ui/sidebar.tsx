@@ -176,9 +176,7 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
-    console.log('Sidebar Component Render:', { isMobile, state, open }); // <--- AÑADE ESTE LOG
     if (isMobile === undefined) {
-      console.log('Returning null because isMobile is undefined');
       return null; // O puedes renderizar un <SidebarMenuSkeleton /> si lo prefieres
     }
     if (isMobile) {
